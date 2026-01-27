@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>eLRC v1.1</title>
+    <title>eLRC v1.2</title>
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         /* --- CORE THEME --- */
@@ -65,7 +65,11 @@
         .toggle-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 6px; font-size: 0.8rem; color: var(--muted); transition: 0.2s; }
         .toggle-btn.active { background: #222; color: white; font-weight: bold; }
 
-        .yt-wrapper { margin-bottom: 15px; background: #000; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; height: 160px; position: relative; flex-shrink: 0; }
+        /* YOUTUBE WRAPPER */
+        .yt-wrapper { 
+            margin-bottom: 15px; background: #000; border: 1px solid var(--border); 
+            border-radius: 8px; overflow: hidden; height: 180px; position: relative; flex-shrink: 0; 
+        }
         #yt-player { width: 100%; height: 100%; }
 
         /* --- EDITOR AREA --- */
@@ -145,7 +149,6 @@
             cursor: grabbing;
         }
 
-        /* Mobile Lift */
         @media (max-width: 800px) {
             .dock {
                 bottom: calc(50px + env(safe-area-inset-bottom));
@@ -204,7 +207,7 @@
 <div class="app" id="app">
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="logo">⚡ eLRC <span style="font-size:0.5em; opacity:0.5; font-weight:400;">v1.1</span></div>
+            <div class="logo">⚡ eLRC <span style="font-size:0.5em; opacity:0.5; font-weight:400;">v1.2</span></div>
             <button class="close-btn" onclick="toggleSidebar(false)">×</button>
         </div>
         
@@ -315,14 +318,26 @@
 
     // --- YouTube ---
     function onYouTubeIframeAPIReady() { console.log("YT Ready"); }
+    
     function loadVideo() {
         const url = document.getElementById('yt-url').value;
-        const vidId = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
-        if(!vidId) return alert("Invalid URL");
+        if(!url) return;
+        
+        let vidId = "";
+        // Robust ID Parser for youtu.be, youtube.com, and music.youtube.com
+        try {
+            if(url.includes('youtu.be')) vidId = url.split('/').pop().split('?')[0];
+            else if(url.includes('v=')) vidId = url.split('v=')[1].split('&')[0];
+        } catch(e) { return alert("Invalid URL format"); }
+
+        if(!vidId) return alert("Could not find Video ID");
+
         if(player) player.destroy();
-        player = new YT.Player('yt-player-container', {
-            height: '0', width: '0', videoId: vidId,
-            playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0 },
+        
+        // FIX: Load into VISIBLE sidebar container
+        player = new YT.Player('yt-player', {
+            height: '100%', width: '100%', videoId: vidId,
+            playerVars: { 'playsinline': 1, 'controls': 1, 'rel': 0 }, // Controls on so user can unmute if needed
             events: { 
                 'onStateChange': (e) => document.getElementById('play-btn').textContent = (e.data === 1) ? "II" : "▶",
                 'onReady': (e) => {
@@ -335,7 +350,6 @@
             }
         });
         startLoop();
-        toggleSidebar(false);
     }
     
     function cleanTitle(t) {
@@ -625,13 +639,11 @@
 
     dockEl.addEventListener('touchmove', (e) => {
         if(!isDraggingDock) {
-            // Cancel if simple scroll/tap
             if(Math.abs(e.touches[0].clientY - dockStartY) > 10) clearTimeout(longPressTimer);
             return;
         }
         e.preventDefault(); 
         const deltaY = e.touches[0].clientY - dockStartY;
-        // Keep centered horizontally, move vertically
         dockEl.style.transform = `translateX(-50%) translateY(${dockOffsetY + deltaY}px)`;
     });
 
@@ -646,6 +658,5 @@
     });
 
 </script>
-<div id="yt-player-container" style="display:none;"></div>
 </body>
 </html>
