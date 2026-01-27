@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>eLRC v1.2</title>
+    <title>eLRC v1.9</title>
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         /* --- CORE THEME --- */
@@ -12,6 +12,11 @@
             --accent: #ffffff; --text: #eeeeee; --muted: #666666;
             --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
             --mono: 'JetBrains Mono', monospace;
+            
+            /* AESTHETIC MONOCHROME PALETTE */
+            --tag-v1: #ffffff; /* Pure White */
+            --tag-v2: #cccccc; /* Light Grey */
+            --tag-bg: #444444; /* Dark Grey */
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         
@@ -24,39 +29,26 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
-        /* --- SIDEBAR (Settings) --- */
+        /* --- SIDEBAR --- */
         .sidebar {
-            width: 340px; 
-            background: #000000; 
-            border-right: 1px solid var(--border);
+            width: 340px; background: #000000; border-right: 1px solid var(--border);
             padding: 20px; display: flex; flex-direction: column; gap: 15px; 
-            z-index: 300; 
-            position: absolute; height: 100%; left: 0; top: 0;
-            transform: translateX(-100%); 
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-            box-shadow: 10px 0 50px rgba(0,0,0,0.8);
-            overflow-y: auto;
+            z-index: 300; position: absolute; height: 100%; left: 0; top: 0;
+            transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 10px 0 50px rgba(0,0,0,0.8); overflow-y: auto;
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
         }
         .sidebar.open { transform: translateX(0); }
-        
         .sidebar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .logo { font-weight: 900; font-size: 1.2rem; letter-spacing: -1px; color: var(--accent); }
         .close-btn { background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
         
         .group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
         label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; font-weight: 700; }
-        
         textarea, input[type="text"], input[type="number"] { width: 100%; background: var(--surface); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.85rem; }
         textarea { resize: none; font-family: var(--mono); height: 120px; }
 
-        .btn {
-            background: var(--surface); border: 1px solid var(--border); color: white;
-            padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
-            transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
-            flex: 1;
-        }
-        .btn:hover { background: #151515; border-color: #555; }
+        .btn { background: var(--surface); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; }
         .btn:active { transform: scale(0.98); }
         .btn.primary { background: var(--accent); color: black; border: none; }
         .btn.sm { padding: 6px 12px; font-size: 0.75rem; width: auto; flex: initial; }
@@ -65,95 +57,111 @@
         .toggle-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 6px; font-size: 0.8rem; color: var(--muted); transition: 0.2s; }
         .toggle-btn.active { background: #222; color: white; font-weight: bold; }
 
-        /* YOUTUBE WRAPPER */
-        .yt-wrapper { 
-            margin-bottom: 15px; background: #000; border: 1px solid var(--border); 
-            border-radius: 8px; overflow: hidden; height: 180px; position: relative; flex-shrink: 0; 
-        }
+        .yt-wrapper { margin-bottom: 15px; background: #000; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; height: 180px; position: relative; flex-shrink: 0; }
         #yt-player { width: 100%; height: 100%; }
 
         /* --- EDITOR AREA --- */
         .editor { flex: 1; position: relative; display: flex; flex-direction: column; background: transparent; transition: margin-left 0.3s ease; height: 100%; }
         @media(min-width: 800px) { .sidebar { position: relative; transform: none; box-shadow: none; border-right: 1px solid #222; width: 320px; } .sidebar.closed { margin-left: -320px; } }
-
         .top-bar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); z-index: 20; flex-shrink: 0; }
         .time-disp { font-family: var(--mono); font-size: 1.2rem; font-weight: 700; color: var(--accent); text-shadow: 0 0 10px rgba(0,0,0,0.5); }
 
-        /* --- LYRICS CONTAINER --- */
         .lyrics { 
-            flex: 1; overflow-y: auto; 
-            padding: 100px 0 250px 0; 
+            flex: 1; overflow-y: auto; padding: 100px 0 250px 0; 
             scroll-behavior: smooth; 
             mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
             -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
         }
 
+        /* --- LINES & ALIGNMENT --- */
         .line {
-            padding: 14px 24px; color: rgba(255,255,255,0.3);
-            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-            font-size: 1.5rem; font-weight: 700; line-height: 1.4;
-            transform-origin: left center; transform: scale(0.95);
-            border-radius: 12px; margin: 0 10px;
-            filter: blur(1.5px);
+            padding: 12px 24px; color: rgba(255,255,255,0.3); transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            font-size: 1.5rem; font-weight: 700; line-height: 1.4; transform-origin: center center; 
+            transform: scale(0.95); border-radius: 12px; margin: 0 10px; filter: blur(1.5px);
+            display: flex; align-items: center; gap: 12px; width: auto;
         }
+        
+        .line.v1 { justify-content: flex-start; text-align: left; margin-right: 40px; }
+        .line.v2 { justify-content: flex-end; text-align: right; flex-direction: row-reverse; margin-left: 40px; }
+        .line.bg { justify-content: center; text-align: center; font-size: 1.2rem; opacity: 0.7; }
 
         .line.active { color: #fff; opacity: 1; filter: blur(0px); transform: scale(1); }
         .line:hover { background: rgba(255,255,255,0.03); }
 
-        /* --- WORD ANIMATION --- */
-        .word-span {
-            display: inline-block; white-space: pre; position: relative;
-            cursor: pointer; 
-            vertical-align: bottom; transform-origin: center bottom;
+        /* BG ANIMATION (PREVIEW) */
+        .app.is-preview .line.bg {
+            opacity: 0; max-height: 0; margin-top: -10px; margin-bottom: 0; padding-top: 0; padding-bottom: 0;
+            transform: translateY(-20px) scale(0.8); filter: blur(5px); overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .app.is-preview .line.bg.active {
+            opacity: 1; max-height: 100px; margin-top: 0; margin-bottom: 10px; padding: 12px 24px;
+            transform: translateY(0) scale(1); filter: blur(0px);
         }
 
-        /* Preview Animations */
+        /* --- MONOCHROME TAG BADGES --- */
+        .tag-badge {
+            font-size: 0.55rem; font-weight: 800; padding: 3px 6px; border-radius: 5px;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+            background: rgba(255,255,255,0.05); color: #666; flex-shrink: 0; user-select: none;
+            transition: 0.2s; border: 1px solid rgba(255,255,255,0.1); min-width: 32px; text-align: center;
+        }
+        
+        /* INACTIVE STATES (Subtle) */
+        .tag-badge.v1 { color: #aaa; border-color: #444; }
+        .tag-badge.v2 { color: #888; border-color: #333; }
+        .tag-badge.bg { color: #555; border-color: #222; }
+
+        /* ACTIVE STATES (Aesthetic B&W) */
+        /* V1: Clean White Border, White Text */
+        .line.active .tag-badge.v1 { background: transparent; border-color: #fff; color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        
+        /* V2: Solid White Block, Black Text (Inverted) */
+        .line.active .tag-badge.v2 { background: #fff; border-color: #fff; color: #000; box-shadow: 0 0 15px rgba(255,255,255,0.4); }
+        
+        /* BG: Dimmed Outline */
+        .line.active .tag-badge.bg { background: rgba(255,255,255,0.1); border-color: #666; color: #888; }
+        
+        .app.is-preview .tag-badge { display: none; }
+        .app.is-preview .ts-tag { display: none; }
+
+        .line-content { flex: 1; }
+        .word-span { display: inline-block; white-space: pre; position: relative; cursor: pointer; vertical-align: bottom; transform-origin: center bottom; transition: color 0.1s; }
+        
         .is-preview .word-span {
             color: rgba(255,255,255,0.3);
             background-image: linear-gradient(90deg, #ffffff calc(var(--p) - 10%), rgba(255,255,255,0.3) calc(var(--p) + 5%));
-            background-size: 100% 100%;
-            -webkit-background-clip: text; background-clip: text;
-            -webkit-text-fill-color: transparent;
-            --p: 0%;
-            will-change: transform, opacity;
+            background-size: 100% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+            --p: 0%; will-change: transform, opacity;
         }
-
         .is-preview .word-span.sung { background: none; -webkit-text-fill-color: #ffffff; color: #ffffff; text-shadow: none; }
         
         .app:not(.is-preview) .word-span.synced { color: #888; border-bottom: 2px solid #333; }
         .app:not(.is-preview) .line.active .word-span.synced { color: #ccc; border-color: var(--accent); }
         .app:not(.is-preview) .line.active .word-span.now { color: var(--accent); background: rgba(255,255,255,0.1); border-radius: 4px; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
         
+        /* White Glow for Recording */
         .app:not(.is-preview) .line.active .word-span.recording {
-            color: #fff !important; background: linear-gradient(90deg, #fff, #aaa);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 15px rgba(255,255,255,0.8); transform: translateY(-2px) scale(1.1);
+            color: #fff !important; background: transparent !important;
+            text-shadow: 0 0 15px rgba(255,255,255,1.0), 0 0 30px rgba(255,255,255,0.5); 
+            transform: scale(1.2) translateY(-3px); z-index: 10;
         }
 
         .ts-tag { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); margin-right: 15px; display: inline-block; vertical-align: middle; opacity: 0.5; }
 
         /* --- DOCK --- */
         .dock {
-            position: absolute; 
-            left: 50%; transform: translateX(-50%); width: 92%; max-width: 550px;
+            position: absolute; left: 50%; transform: translateX(-50%); width: 92%; max-width: 550px;
             background: rgba(20,20,20,0.9); backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px;
             display: flex; flex-direction: column; gap: 15px; z-index: 100;
             box-shadow: 0 20px 50px rgba(0,0,0,0.6);
             bottom: calc(20px + env(safe-area-inset-bottom)); 
-            transition: box-shadow 0.3s;
+            transition: box-shadow 0.2s;
         }
-        
-        .dock.is-dragging {
-            box-shadow: 0 0 0 2px var(--accent), 0 20px 60px rgba(0,0,0,0.8);
-            cursor: grabbing;
-        }
-
-        @media (max-width: 800px) {
-            .dock {
-                bottom: calc(50px + env(safe-area-inset-bottom));
-            }
-        }
+        .dock.is-dragging { box-shadow: 0 0 0 2px var(--accent), 0 20px 60px rgba(0,0,0,0.8); cursor: grabbing; }
+        .dock.active-hold-glow { box-shadow: 0 0 40px rgba(255, 255, 255, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.4); }
+        @media (max-width: 800px) { .dock { bottom: calc(50px + env(safe-area-inset-bottom)); } }
 
         .sliders { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 0.75rem; color: #888; }
         input[type=range] { -webkit-appearance: none; background: #333; height: 4px; border-radius: 2px; flex: 1; padding: 0; border: none; }
@@ -181,17 +189,15 @@
         .credits { text-align: center; color: #333; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; opacity: 0.5; }
         .sidebar .credits { margin-top: auto; padding-top: 20px; border-top: 1px solid #111; }
 
-        /* Floating Context */
         .ctx-ui {
             position: fixed; bottom: 220px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px;
-            font-size: 0.9rem; font-weight: 600; display: flex; gap: 10px;
+            background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 16px;
+            font-size: 0.8rem; font-weight: 600; display: flex; gap: 10px;
             opacity: 0; pointer-events: none; transition: 0.2s; backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.1);
         }
         .ctx-ui.visible { opacity: 1; }
 
-        /* Living Background */
         #living-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0; transition: opacity 1s ease; pointer-events: none; overflow: hidden; }
         .is-preview #living-bg { opacity: 0.4; }
         .blob { position: absolute; width: 600px; height: 600px; border-radius: 50%; filter: blur(80px); opacity: 0.6; mix-blend-mode: screen; animation: float 20s infinite ease-in-out; }
@@ -207,7 +213,7 @@
 <div class="app" id="app">
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="logo">⚡ eLRC <span style="font-size:0.5em; opacity:0.5; font-weight:400;">v1.2</span></div>
+            <div class="logo">⚡ eLRC <span style="font-size:0.5em; opacity:0.5; font-weight:400;">v1.9</span></div>
             <button class="close-btn" onclick="toggleSidebar(false)">×</button>
         </div>
         
@@ -305,7 +311,6 @@
 </div>
 
 <script>
-    // --- Config ---
     const TIME_THRESHOLD = 0.37;
     let player, timer;
     let state = {
@@ -316,28 +321,22 @@
     let speeds = [0.5, 0.75, 1.0, 1.25, 1.5];
     let speedIdx = 2; 
 
-    // --- YouTube ---
     function onYouTubeIframeAPIReady() { console.log("YT Ready"); }
     
     function loadVideo() {
         const url = document.getElementById('yt-url').value;
         if(!url) return;
-        
         let vidId = "";
-        // Robust ID Parser for youtu.be, youtube.com, and music.youtube.com
         try {
             if(url.includes('youtu.be')) vidId = url.split('/').pop().split('?')[0];
             else if(url.includes('v=')) vidId = url.split('v=')[1].split('&')[0];
-        } catch(e) { return alert("Invalid URL format"); }
-
-        if(!vidId) return alert("Could not find Video ID");
+        } catch(e) { return alert("Invalid URL"); }
+        if(!vidId) return alert("No Video ID");
 
         if(player) player.destroy();
-        
-        // FIX: Load into VISIBLE sidebar container
         player = new YT.Player('yt-player', {
             height: '100%', width: '100%', videoId: vidId,
-            playerVars: { 'playsinline': 1, 'controls': 1, 'rel': 0 }, // Controls on so user can unmute if needed
+            playerVars: { 'playsinline': 1, 'controls': 1, 'rel': 0 },
             events: { 
                 'onStateChange': (e) => document.getElementById('play-btn').textContent = (e.data === 1) ? "II" : "▶",
                 'onReady': (e) => {
@@ -352,17 +351,12 @@
         startLoop();
     }
     
-    function cleanTitle(t) {
-        return t.replace(/[\(\[\{].*?[\)\]\}]/g, '').replace(/official\s+video/gi, '').replace(/lyrics/gi, '').trim();
-    }
-    
+    function cleanTitle(t) { return t.replace(/[\(\[\{].*?[\)\]\}]/g, '').replace(/official\s+video/gi, '').replace(/lyrics/gi, '').trim(); }
     function searchLyrics() {
-        if(!state.videoTitle || state.videoTitle === "voxen_export") return alert("Load a video first!");
-        const query = encodeURIComponent(state.videoTitle + " lyrics");
-        window.open(`https://www.google.com/search?q=${query}`, '_blank');
+        if(!state.videoTitle || state.videoTitle === "voxen_export") return alert("Load video first!");
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(state.videoTitle + " lyrics")}`, '_blank');
     }
 
-    // --- Core Loop ---
     function startLoop() {
         if(timer) cancelAnimationFrame(timer);
         const loop = () => {
@@ -383,83 +377,141 @@
         loop();
     }
 
-    // --- Controls ---
     function togglePlay() { if(!player) return; player.getPlayerState() === 1 ? player.pauseVideo() : player.playVideo(); }
     function seek(n) { if(player) player.seekTo(player.getCurrentTime() + n, true); }
     function userSeek() { if(player) player.seekTo(document.getElementById('seek').value, true); }
-    
-    function cycleSpeed() {
-        speedIdx = (speedIdx + 1) % speeds.length;
-        const s = speeds[speedIdx];
-        if(player) player.setPlaybackRate(s);
-        updateSpeedBtn();
-    }
-    
+    function cycleSpeed() { speedIdx = (speedIdx + 1) % speeds.length; player.setPlaybackRate(speeds[speedIdx]); updateSpeedBtn(); }
     function updateSpeedBtn() { document.getElementById('btn-speed').innerText = speeds[speedIdx] + "x"; }
 
-    // --- Animation Logic ---
+    // --- PREVIEW LOGIC WITH BG POP & PARENT PERSISTENCE ---
     function runPreviewLogic(t) {
-        const activeI = state.lyrics.findIndex((l, i) => {
-            const next = state.lyrics[i+1];
-            return l.time <= t && (!next || next.time > t);
+        let activeIndices = [];
+        
+        state.lyrics.forEach((l, i) => {
+            if(l.time !== null) {
+                let endTime = l.time + 3; 
+                if (state.mode === 'word' && l.words.length > 0) {
+                    const lastW = l.words[l.words.length-1];
+                    if(lastW.e) endTime = lastW.e + 1; 
+                    else if(lastW.s) endTime = lastW.s + 3;
+                } else if (state.lyrics[i+1] && state.lyrics[i+1].time) {
+                    endTime = state.lyrics[i+1].time;
+                }
+                if (t >= l.time && t < endTime) activeIndices.push(i);
+            }
         });
 
-        if(activeI !== -1 && activeI !== state.idx) {
-            state.idx = activeI;
-            document.querySelectorAll('.line').forEach(l => l.classList.remove('active'));
-            const el = document.getElementById(`l-${activeI}`);
-            if(el) {
-                el.classList.add('active');
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        let forcedIndices = [];
+        activeIndices.forEach(idx => {
+            const line = state.lyrics[idx];
+            if(line.type === 'bg') {
+                for(let k = idx - 1; k >= 0; k--) {
+                    if(state.lyrics[k].type !== 'bg') {
+                        forcedIndices.push(k);
+                        break; 
+                    }
+                }
+            }
+        });
+        activeIndices = [...new Set([...activeIndices, ...forcedIndices])];
+
+        state.lyrics.forEach((l, i) => {
+            const el = document.getElementById(`l-${i}`);
+            if(activeIndices.includes(i)) {
+                if(el && !el.classList.contains('active')) el.classList.add('active');
+            } else {
+                if(el && el.classList.contains('active')) el.classList.remove('active');
+            }
+        });
+
+        if (activeIndices.length > 0) {
+            let focusIdx = activeIndices[activeIndices.length - 1];
+            for(let i=activeIndices.length-1; i>=0; i--) {
+                if(state.lyrics[activeIndices[i]].type !== 'bg') {
+                    focusIdx = activeIndices[i];
+                    break;
+                }
+            }
+            if (focusIdx !== state.idx) {
+                state.idx = focusIdx;
+                const el = document.getElementById(`l-${focusIdx}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
 
         if(state.mode === 'word') {
-            const line = state.lyrics[state.idx];
-            if(line && line.words) {
-                line.words.forEach((w, wi) => {
-                    const span = document.getElementById(`w-${state.idx}-${wi}`);
-                    if(!span) return;
-                    
-                    let wEnd = w.e || (line.words[wi+1] ? line.words[wi+1].s : w.s + 1);
-                    const dur = Math.max(0.2, wEnd - w.s);
-
-                    if (t >= w.s && t < wEnd) {
-                        const p = (t - w.s) / dur;
-                        span.classList.add('swiping'); span.classList.remove('sung');
-                        span.style.setProperty('--p', (p * 100) + '%');
-                        const lift = dur > TIME_THRESHOLD ? -2 * p : 0;
-                        span.style.transform = `translate3d(0, ${lift}px, 0)`;
-                    } else if (t >= wEnd) {
-                        span.classList.add('sung'); span.classList.remove('swiping');
-                        span.style.removeProperty('--p');
-                        span.style.transform = `translate3d(0, -2px, 0)`;
-                    } else {
-                        span.classList.remove('sung', 'swiping');
-                        span.style.setProperty('--p', '0%');
-                        span.style.transform = `translate3d(0, 0, 0)`;
-                    }
-                });
-            }
+            activeIndices.forEach(idx => {
+                const line = state.lyrics[idx];
+                if(line && line.words) {
+                    line.words.forEach((w, wi) => {
+                        const span = document.getElementById(`w-${idx}-${wi}`);
+                        if(!span) return;
+                        let wEnd = w.e || (line.words[wi+1] ? line.words[wi+1].s : w.s + 1);
+                        const dur = Math.max(0.2, wEnd - w.s);
+                        if (t >= w.s && t < wEnd) {
+                            const p = (t - w.s) / dur;
+                            span.classList.add('swiping'); span.classList.remove('sung');
+                            span.style.setProperty('--p', (p * 100) + '%');
+                            const lift = dur > TIME_THRESHOLD ? -2 * p : 0;
+                            span.style.transform = `translate3d(0, ${lift}px, 0)`;
+                        } else if (t >= wEnd) {
+                            span.classList.add('sung'); span.classList.remove('swiping');
+                            span.style.removeProperty('--p');
+                            span.style.transform = `translate3d(0, -2px, 0)`;
+                        } else {
+                            span.classList.remove('sung', 'swiping');
+                            span.style.setProperty('--p', '0%');
+                            span.style.transform = `translate3d(0, 0, 0)`;
+                        }
+                    });
+                }
+            });
         }
     }
 
-    // --- Editor ---
     function initEditor(mode) {
         const raw = document.getElementById('raw-input').value.trim();
         if(!raw) return alert("Paste lyrics first!");
         state.mode = mode;
-        state.lyrics = raw.split('\n').filter(x=>x.trim()).map(l => ({ 
-            text: l.trim(), time: null, 
-            words: l.trim().split(/\s+/).map(w => ({t:w, s:null, e:null})) 
-        }));
+        
+        let lastType = 'v1'; 
+        state.lyrics = raw.split('\n').filter(x=>x.trim()).map(l => {
+            let txt = l.trim();
+            let type = lastType; 
+            if(txt.toLowerCase().startsWith('[v2]')) { type = 'v2'; txt = txt.substring(4).trim(); }
+            else if(txt.toLowerCase().startsWith('[bg:')) { type = 'bg'; txt = txt.replace(/^\[bg:/i, '').replace(/\]$/, '').trim(); }
+            else if(txt.toLowerCase().startsWith('[v1]')) { type = 'v1'; txt = txt.substring(4).trim(); }
+            lastType = type;
+            return { text: txt, type: type, time: null, words: txt.split(/\s+/).map(w => ({t:w, s:null, e:null})) };
+        });
+        
         state.idx = 0; state.wIdx = 0;
         document.getElementById('btn-line-mode').classList.toggle('active', mode === 'line');
         document.getElementById('btn-word-mode').classList.toggle('active', mode === 'word');
         const modeSelect = document.querySelector('.mode-select');
         if (mode === 'line') { modeSelect.style.opacity = '0.3'; modeSelect.style.pointerEvents = 'none'; } 
         else { modeSelect.style.opacity = '1'; modeSelect.style.pointerEvents = 'auto'; }
+        
         fullRender(); toggleSidebar(false);
+    }
+
+    function toggleLineType(index) {
+        const line = state.lyrics[index];
+        const oldType = line.type;
+        let newType = 'v1';
+        if (oldType === 'v1') newType = 'v2';
+        else if (oldType === 'v2') newType = 'bg';
+        
+        line.type = newType;
+        
+        for (let j = index + 1; j < state.lyrics.length; j++) {
+            if (state.lyrics[j].type === oldType) {
+                state.lyrics[j].type = newType;
+            } else {
+                break;
+            }
+        }
+        fullRender(); 
     }
 
     function fullRender() {
@@ -468,14 +520,25 @@
         c.innerHTML = "";
         state.lyrics.forEach((l, i) => {
             const div = document.createElement('div');
-            div.className = `line ${i === state.idx ? 'active' : ''}`;
+            div.className = `line ${l.type} ${i === state.idx ? 'active' : ''}`;
             div.id = `l-${i}`;
+            
+            const tagBtn = document.createElement('div');
+            tagBtn.id = `tag-${i}`;
+            tagBtn.className = `tag-badge ${l.type}`;
+            tagBtn.innerText = l.type.toUpperCase();
+            tagBtn.onclick = (e) => { e.stopPropagation(); toggleLineType(i); };
+            div.appendChild(tagBtn);
+
             const ts = document.createElement('span');
             ts.className = 'ts-tag'; ts.id = `ts-${i}`;
             ts.innerText = l.time ? fmtTime(l.time) : '--:--';
             div.appendChild(ts);
+
+            const content = document.createElement('div');
+            content.className = 'line-content';
             if(state.mode === 'line') {
-                div.appendChild(document.createTextNode(l.text));
+                content.appendChild(document.createTextNode(l.text));
             } else {
                 l.words.forEach((w, wi) => {
                     const s = document.createElement('span');
@@ -483,9 +546,10 @@
                     if(w.s !== null) s.classList.add('synced');
                     if(i === state.idx && wi === state.wIdx && !state.isPreview) s.classList.add('now');
                     s.onclick = (e) => { e.stopPropagation(); jumpTo(i, wi); };
-                    div.appendChild(s);
+                    content.appendChild(s);
                 });
             }
+            div.appendChild(content);
             div.onclick = () => jumpTo(i, 0);
             c.appendChild(div);
         });
@@ -494,6 +558,7 @@
     }
 
     function updateVisuals() {
+        if(state.isPreviewMode) return;
         document.querySelectorAll('.line').forEach((el, i) => {
             if (i === state.idx) el.classList.add('active'); else el.classList.remove('active');
         });
@@ -512,7 +577,6 @@
 
     function jumpTo(i, w) { state.idx = i; state.wIdx = w; updateVisuals(); }
 
-    // --- Syncing ---
     function setSyncMode(m) { 
         state.syncMode = m; 
         document.getElementById('sync-lbl').innerText = m.toUpperCase();
@@ -525,6 +589,7 @@
         if(!player || state.idx >= state.lyrics.length) return;
         const t = player.getCurrentTime();
         document.getElementById('sync-btn').classList.add('active');
+        document.querySelector('.dock').classList.add('active-hold-glow');
         const line = state.lyrics[state.idx];
         if(state.mode === 'line') {
             line.time = t; document.getElementById(`ts-${state.idx}`).innerText = fmtTime(t);
@@ -544,11 +609,12 @@
     function syncUp(e) {
         if(e) e.preventDefault();
         document.getElementById('sync-btn').classList.remove('active');
+        document.querySelector('.dock').classList.remove('active-hold-glow');
         if(!state.holding) return;
         state.holding = false;
         if(state.mode === 'word') {
             const wEl = document.getElementById(`w-${state.idx}-${state.wIdx}`);
-            if(wEl) wEl.classList.remove('recording');
+            if(wEl) wEl.classList.remove('recording'); 
             if(state.syncMode === 'hold' || state.syncMode === 'auto') {
                 const line = state.lyrics[state.idx];
                 if(line && line.words[state.wIdx]) {
@@ -579,10 +645,12 @@
             app.classList.add('is-preview');
             btn.style.color = 'var(--accent)';
             document.querySelectorAll('.ts-tag').forEach(e => e.style.display = 'none');
+            document.querySelectorAll('.tag-badge').forEach(e => e.style.display = 'none');
         } else {
             app.classList.remove('is-preview');
             btn.style.color = 'white';
             document.querySelectorAll('.ts-tag').forEach(e => e.style.display = 'inline-block');
+            document.querySelectorAll('.tag-badge').forEach(e => e.style.display = 'block');
             fullRender(); 
         }
     }
@@ -590,16 +658,24 @@
     function genLRC() {
         const out = state.lyrics.map(l => {
             if(!l.time) return '';
-            let line = `[${fmtTime(l.time, true)}]`;
-            if(state.mode === 'word') {
-                l.words.forEach(w => {
-                    const tag = w.s ? `<${fmtTime(w.s, true)}>` : '';
-                    line += ` ${tag}${w.t}`;
-                });
+            let lineStr = "";
+            if(l.type === 'bg') {
+                let content = (state.mode==='word') ? l.words.map(w => `<${fmtTime(w.s, true)}>${w.t}`).join(' ') : l.text;
+                lineStr = `[bg:${content}]`;
             } else {
-                line += ` ${l.text}`;
+                let prefix = l.type + ":"; 
+                let ts = `[${fmtTime(l.time, true)}]`;
+                if(state.mode === 'word') {
+                    let wordContent = l.words.map(w => {
+                        const tag = w.s ? `<${fmtTime(w.s, true)}>` : '';
+                        return `${tag}${w.t}`;
+                    }).join(' ');
+                    lineStr = `${ts}${prefix}${wordContent}`;
+                } else {
+                    lineStr = `${ts}${prefix}${l.text}`;
+                }
             }
-            return line;
+            return lineStr;
         }).join('\n');
         document.getElementById('lrc-out').value = out;
     }
@@ -608,7 +684,7 @@
     function copyLRC() { genLRC(); document.getElementById('lrc-out').select(); document.execCommand('copy'); alert("Copied!"); }
     function applyOffset() { const ms = parseFloat(document.getElementById('offset-ms').value)/1000; state.lyrics.forEach(l => { if(l.time) l.time+=ms; l.words.forEach(w => { if(w.s) w.s+=ms; if(w.e) w.e+=ms; }); }); fullRender(); genLRC(); }
     function updateContext() { const ctx = document.getElementById('word-ctx'); if(state.mode !== 'word' || state.isPreview) { ctx.classList.remove('visible'); return; } ctx.classList.add('visible'); const l = state.lyrics[state.idx]; if(!l) return; const prev = state.wIdx > 0 ? l.words[state.wIdx-1].t : '...'; const curr = l.words[state.wIdx] ? l.words[state.wIdx].t : 'END'; document.getElementById('ctx-prev').innerText = prev; document.getElementById('ctx-curr').innerText = curr; }
-    function fmtTime(s, ms=false) { if(!s) return ms?"00:00.00":"0:00"; const m = Math.floor(s/60); const sc = Math.floor(s%60); const msc = Math.floor((s%1)*100); return `${m.toString().padStart(2,'0')}:${sc.toString().padStart(2,'0')}${ms?'.'+msc.toString().padStart(2,'0'):''}`; }
+    function fmtTime(s, ms=false) { if(!s) return ms?"00:00.00":"0:00"; const m = Math.floor(s/60); const sc = Math.floor(s%60); const msc = Math.floor((s%1)*100); return `${m.toString().padStart(2,'0')}:${sc.toString().padStart(2,'0')}${ms?'.'+msc.toString().padStart(3,'0'):''}`; }
     function toggleSidebar(o) { const s = document.getElementById('sidebar'); s.classList.toggle('open', o); if(window.innerWidth >= 800) document.getElementById('sidebar').classList.toggle('closed', !o); }
     
     document.addEventListener('keydown', e => {
@@ -622,39 +698,20 @@
 
     // --- DRAG DOCK LOGIC (VERTICAL) ---
     const dockEl = document.querySelector('.dock');
-    let dockOffsetY = 0;
-    let dockStartY = 0;
-    let isDraggingDock = false;
-    let longPressTimer = null;
-
+    let dockOffsetY = 0; let dockStartY = 0; let isDraggingDock = false; let longPressTimer = null;
     dockEl.addEventListener('touchstart', (e) => {
         if(e.target.closest('button') || e.target.closest('input')) return;
         dockStartY = e.touches[0].clientY;
-        longPressTimer = setTimeout(() => {
-            isDraggingDock = true;
-            dockEl.classList.add('is-dragging');
-            if(navigator.vibrate) navigator.vibrate(50);
-        }, 500); 
+        longPressTimer = setTimeout(() => { isDraggingDock = true; dockEl.classList.add('is-dragging'); if(navigator.vibrate) navigator.vibrate(50); }, 500); 
     });
-
     dockEl.addEventListener('touchmove', (e) => {
-        if(!isDraggingDock) {
-            if(Math.abs(e.touches[0].clientY - dockStartY) > 10) clearTimeout(longPressTimer);
-            return;
-        }
-        e.preventDefault(); 
-        const deltaY = e.touches[0].clientY - dockStartY;
+        if(!isDraggingDock) { if(Math.abs(e.touches[0].clientY - dockStartY) > 10) clearTimeout(longPressTimer); return; }
+        e.preventDefault(); const deltaY = e.touches[0].clientY - dockStartY;
         dockEl.style.transform = `translateX(-50%) translateY(${dockOffsetY + deltaY}px)`;
     });
-
     dockEl.addEventListener('touchend', (e) => {
         clearTimeout(longPressTimer);
-        if(isDraggingDock) {
-            const deltaY = e.changedTouches[0].clientY - dockStartY;
-            dockOffsetY += deltaY;
-            isDraggingDock = false;
-            dockEl.classList.remove('is-dragging');
-        }
+        if(isDraggingDock) { dockOffsetY += e.changedTouches[0].clientY - dockStartY; isDraggingDock = false; dockEl.classList.remove('is-dragging'); }
     });
 
 </script>
