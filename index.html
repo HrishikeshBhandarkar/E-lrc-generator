@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>eLRC v0.9</title>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <style>
+        /* --- CORE THEME --- */
+        :root {
+            --bg: #000000; --surface: #0a0a0a; --border: #222;
+            --accent: #ffffff; --text: #eeeeee; --muted: #666666;
+            --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        .app { display: flex; height: 100%; position: relative; z-index: 10; overflow: hidden; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        /* --- SIDEBAR (Settings) --- */
+        .sidebar {
+            width: 340px; 
+            background: #000000; 
+            border-right: 1px solid var(--border);
+            padding: 20px; display: flex; flex-direction: column; gap: 15px; 
+            z-index: 300; 
+            position: absolute; height: 100%; left: 0; top: 0;
+            transform: translateX(-100%); 
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 10px 0 50px rgba(0,0,0,0.8);
+            overflow-y: auto;
+        }
+        .sidebar.open { transform: translateX(0); }
+        
+        .sidebar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .logo { font-weight: 900; font-size: 1.2rem; letter-spacing: -1px; color: var(--accent); }
+        .close-btn { background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        
+        .group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+        label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+        
+        input[type="text"], input[type="number"], textarea {
+            background: var(--surface); border: 1px solid var(--border); color: white;
+            padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.85rem; width: 100%;
+        }
+        input:focus, textarea:focus { border-color: var(--accent); }
+        textarea { resize: none; font-family: var(--mono); height: 120px; }
+
+        .btn {
+            background: var(--surface); border: 1px solid var(--border); color: white;
+            padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+            transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+            flex: 1;
+        }
+        .btn:hover { background: #151515; border-color: #555; }
+        .btn:active { transform: scale(0.98); }
+        .btn.primary { background: var(--accent); color: black; border: none; }
+        .btn.sm { padding: 6px 12px; font-size: 0.75rem; width: auto; flex: initial; }
+        
+        .toggle-group { display: flex; gap: 5px; background: var(--surface); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
+        .toggle-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 6px; font-size: 0.8rem; color: var(--muted); transition: 0.2s; }
+        .toggle-btn.active { background: #222; color: white; font-weight: bold; }
+
+        .yt-wrapper { margin-bottom: 15px; background: #000; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; height: 160px; position: relative; flex-shrink: 0; }
+        #yt-player { width: 100%; height: 100%; }
+
+        /* --- EDITOR AREA --- */
+        .editor { flex: 1; position: relative; display: flex; flex-direction: column; background: transparent; transition: margin-left 0.3s ease; }
+        @media(min-width: 800px) { .sidebar { position: relative; transform: none; box-shadow: none; border-right: 1px solid #222; width: 320px; } .sidebar.closed { margin-left: -320px; } }
+
+        .top-bar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); z-index: 20; flex-shrink: 0; }
+        .time-disp { font-family: var(--mono); font-size: 1.2rem; font-weight: 700; color: var(--accent); text-shadow: 0 0 10px rgba(0,0,0,0.5); }
+
+        /* --- LYRICS CONTAINER --- */
+        .lyrics { 
+            flex: 1; overflow-y: auto; padding: 100px 0 250px 0; 
+            scroll-behavior: smooth; 
+            mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+        }
+
+        .line {
+            padding: 14px 24px; color: rgba(255,255,255,0.3);
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            font-size: 1.5rem; font-weight: 700; line-height: 1.4;
+            transform-origin: left center; transform: scale(0.95);
+            border-radius: 12px; margin: 0 10px;
+            filter: blur(1.5px);
+        }
+
+        .line.active { color: #fff; opacity: 1; filter: blur(0px); transform: scale(1); }
+        .line:hover { background: rgba(255,255,255,0.03); }
+
+        /* --- WORD ANIMATION (Using Manual Logic) --- */
+        .word-span {
+            display: inline-block; white-space: pre; position: relative;
+            cursor: pointer; 
+            /* REMOVED CSS TRANSITIONS for transform/color to allow JS control */
+            vertical-align: bottom; transform-origin: center bottom;
+        }
+
+        /* Gradient Fill (Managed by JS --p variable) */
+        .is-preview .word-span {
+            color: rgba(255,255,255,0.3);
+            background-image: linear-gradient(90deg, #ffffff calc(var(--p) - 10%), rgba(255,255,255,0.3) calc(var(--p) + 5%));
+            background-size: 100% 100%;
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            --p: 0%;
+            will-change: transform, opacity;
+        }
+
+        .is-preview .word-span.sung {
+            background: none; -webkit-text-fill-color: #ffffff; color: #ffffff;
+            text-shadow: none;
+        }
+        
+        /* Editor State */
+        .app:not(.is-preview) .word-span.synced { color: #888; border-bottom: 2px solid #333; }
+        .app:not(.is-preview) .line.active .word-span.synced { color: #ccc; border-color: var(--accent); }
+        .app:not(.is-preview) .line.active .word-span.now { color: var(--accent); background: rgba(255,255,255,0.1); border-radius: 4px; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
+        .app:not(.is-preview) .line.active .word-span.recording {
+            color: #fff !important; background: linear-gradient(90deg, #fff, #aaa);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 15px rgba(255,255,255,0.8); transform: translateY(-2px) scale(1.1);
+        }
+
+        .ts-tag { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); margin-right: 15px; display: inline-block; vertical-align: middle; opacity: 0.5; }
+
+        /* --- DOCK --- */
+        .dock {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 550px;
+            background: rgba(20,20,20,0.85); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px;
+            display: flex; flex-direction: column; gap: 15px; z-index: 100;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+        .sliders { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 0.75rem; color: #888; }
+        input[type=range] { -webkit-appearance: none; background: #333; height: 4px; border-radius: 2px; flex: 1; padding: 0; border: none; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: white; border-radius: 50%; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        
+        .controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .c-btn { background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer; opacity: 0.7; width: 40px; }
+        .c-btn:hover { opacity: 1; }
+        .speed-btn { font-size: 0.8rem; font-weight: 700; width: auto; padding: 0 4px; color: var(--accent); opacity: 0.6; }
+        .speed-btn:hover { opacity: 1; }
+
+        .play-btn { width: 50px; height: 50px; background: white; color: black; border-radius: 16px; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        
+        .sync-btn {
+            flex: 2; height: 50px; background: #222; border: 1px solid #333; border-radius: 14px;
+            color: white; font-weight: 800; letter-spacing: 1px; display: flex; align-items: center; justify-content: center;
+            transition: 0.1s; font-size: 0.9rem;
+        }
+        .sync-btn:active, .sync-btn.active { background: white; color: black; transform: scale(0.98); }
+
+        .mode-select { display: flex; gap: 5px; flex: 1.5; background: #111; padding: 4px; border-radius: 12px; }
+        .mode-opt { flex: 1; font-size: 0.7rem; font-weight: 600; color: #666; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: 0.2s; }
+        .mode-opt.active { background: #333; color: white; }
+
+        /* Credits */
+        .credits { text-align: center; color: #333; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; opacity: 0.5; }
+        .sidebar .credits { margin-top: auto; padding-top: 20px; border-top: 1px solid #111; }
+
+        /* Floating Context */
+        .ctx-ui {
+            position: fixed; bottom: 220px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px;
+            font-size: 0.9rem; font-weight: 600; display: flex; gap: 10px;
+            opacity: 0; pointer-events: none; transition: 0.2s; backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .ctx-ui.visible { opacity: 1; }
+
+        /* Living Background */
+        #living-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0; transition: opacity 1s ease; pointer-events: none; overflow: hidden; }
+        .is-preview #living-bg { opacity: 0.4; }
+        .blob { position: absolute; width: 600px; height: 600px; border-radius: 50%; filter: blur(80px); opacity: 0.6; mix-blend-mode: screen; animation: float 20s infinite ease-in-out; }
+        .b1 { background: radial-gradient(circle, #4a00e0, transparent); top: -100px; left: -100px; }
+        .b2 { background: radial-gradient(circle, #8e2de2, transparent); bottom: -100px; right: -100px; animation-delay: -10s; }
+        @keyframes float { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(50px,50px) scale(1.1); } }
+    </style>
+</head>
+<body>
+
+<div id="living-bg"><div class="blob b1"></div><div class="blob b2"></div></div>
+
+<div class="app" id="app">
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">⚡ eLRC <span style="font-size:0.5em; opacity:0.5; font-weight:400;">v0.9</span></div>
+            <button class="close-btn" onclick="toggleSidebar(false)">×</button>
+        </div>
+        
+        <div class="group">
+            <label>YouTube Link</label>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="yt-url" placeholder="https://youtu.be/..." onchange="loadVideo()">
+                <button class="btn" onclick="loadVideo()">Load</button>
+            </div>
+            <div class="yt-wrapper"><div id="yt-player"></div></div>
+        </div>
+
+        <div class="group">
+            <label>Lyrics Mode</label>
+            <div class="toggle-group">
+                <div class="toggle-btn active" id="btn-line-mode" onclick="initEditor('line')">Line Sync</div>
+                <div class="toggle-btn" id="btn-word-mode" onclick="initEditor('word')">Word Sync</div>
+            </div>
+        </div>
+
+        <div class="group">
+            <label>Raw Lyrics</label>
+            <textarea id="raw-input" placeholder="Paste lyrics here..."></textarea>
+            <div style="display:flex; gap:5px;">
+                <button class="btn" onclick="initEditor(state.mode)">Update</button>
+                <button class="btn" onclick="searchLyrics()">🔍 Search</button>
+            </div>
+        </div>
+
+        <div class="group">
+            <label>Export</label>
+            <div style="display:flex; gap:5px; margin-bottom:5px;">
+                <input type="number" id="offset-ms" placeholder="Offset (ms)" value="0">
+                <button class="btn" onclick="applyOffset()">Shift</button>
+            </div>
+            <textarea id="lrc-out" readonly placeholder="LRC Output..." style="height:60px;"></textarea>
+            
+            <div style="display:flex; gap:8px;">
+                <button class="btn" onclick="copyLRC()">Copy LRC</button>
+                <button class="btn primary" id="btn-save" onclick="saveLRC()">Download</button>
+            </div>
+        </div>
+
+        <div class="credits">Created by Noob.exe</div>
+    </div>
+
+    <div class="editor">
+        <div class="top-bar">
+            <button class="btn sm" onclick="toggleSidebar(true)">⚙ Settings</button>
+            <div class="time-disp" id="time-display">00:00.00</div>
+            <button class="btn sm" id="preview-btn" onclick="togglePreview()">▶ Preview</button>
+        </div>
+
+        <div class="lyrics" id="lyrics-container">
+            <div style="text-align:center; padding:100px 20px; color:#333;">
+                <h3>Ready</h3>
+                <p>Load video > Paste Lyrics > Select Mode</p>
+                <div class="credits" style="margin-top:20px;">Created by Noob.exe</div>
+            </div>
+        </div>
+
+        <div class="ctx-ui" id="word-ctx">
+            <span style="color:#666" id="ctx-prev">Prev</span>
+            <span>→</span>
+            <span style="color:var(--accent)" id="ctx-curr">Target</span>
+        </div>
+
+        <div class="dock">
+            <div class="sliders">
+                <span id="curr-t">0:00</span>
+                <input type="range" id="seek" value="0" step="0.1" oninput="userSeek()">
+                <span id="dur-t">0:00</span>
+            </div>
+            
+            <div class="controls">
+                <button class="c-btn speed-btn" id="btn-speed" onclick="cycleSpeed()">1.0x</button>
+                <button class="c-btn" onclick="seek(-5)">-5</button>
+                <button class="play-btn" id="play-btn" onclick="togglePlay()">▶</button>
+                <button class="c-btn" onclick="seek(5)">+5</button>
+                
+                <button class="sync-btn" id="sync-btn" 
+                        onmousedown="syncDown()" onmouseup="syncUp()" 
+                        ontouchstart="syncDown(event)" ontouchend="syncUp(event)">
+                    <span id="sync-lbl">TAP</span>
+                </button>
+
+                <div class="mode-select">
+                    <div class="mode-opt active" id="mode-tap" onclick="setSyncMode('tap')">Tap</div>
+                    <div class="mode-opt" id="mode-hold" onclick="setSyncMode('hold')">Hold</div>
+                    <div class="mode-opt" id="mode-auto" onclick="setSyncMode('auto')">Auto</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Config ---
+    const TIME_THRESHOLD = 0.37; // Logic from your file
+    let player, timer;
+    let state = {
+        lyrics: [], mode: 'line', idx: 0, wIdx: 0,
+        syncMode: 'tap', isPreview: false, holding: false,
+        videoTitle: "voxen_export"
+    };
+    let speeds = [0.5, 0.75, 1.0, 1.25, 1.5];
+    let speedIdx = 2; 
+
+    // --- YouTube ---
+    function onYouTubeIframeAPIReady() { console.log("YT Ready"); }
+    function loadVideo() {
+        const url = document.getElementById('yt-url').value;
+        const vidId = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
+        if(!vidId) return alert("Invalid URL");
+        if(player) player.destroy();
+        player = new YT.Player('yt-player', {
+            height: '100%', width: '100%', videoId: vidId,
+            playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0 },
+            events: { 
+                'onStateChange': (e) => document.getElementById('play-btn').textContent = (e.data === 1) ? "II" : "▶",
+                'onReady': (e) => {
+                    if(e.target.getVideoData) {
+                        const t = e.target.getVideoData().title;
+                        if(t) state.videoTitle = cleanTitle(t);
+                    }
+                    speedIdx = 2; updateSpeedBtn();
+                }
+            }
+        });
+        startLoop();
+        toggleSidebar(false);
+    }
+    
+    function cleanTitle(t) {
+        return t.replace(/[\(\[\{].*?[\)\]\}]/g, '').replace(/official\s+video/gi, '').replace(/lyrics/gi, '').trim();
+    }
+    
+    function searchLyrics() {
+        if(!state.videoTitle || state.videoTitle === "voxen_export") return alert("Load a video first!");
+        const query = encodeURIComponent(state.videoTitle + " lyrics");
+        window.open(`https://www.google.com/search?q=${query}`, '_blank');
+    }
+
+    // --- Core Loop ---
+    function startLoop() {
+        if(timer) cancelAnimationFrame(timer);
+        const loop = () => {
+            if(player && player.getCurrentTime) {
+                const t = player.getCurrentTime();
+                const d = player.getDuration();
+                
+                document.getElementById('curr-t').innerText = fmtTime(t);
+                document.getElementById('time-display').innerText = fmtTime(t, true);
+                if(d) {
+                    document.getElementById('dur-t').innerText = fmtTime(d);
+                    const s = document.getElementById('seek');
+                    if(document.activeElement !== s) { s.max = d; s.value = t; }
+                }
+                if(state.isPreview) runPreviewLogic(t);
+            }
+            timer = requestAnimationFrame(loop);
+        };
+        loop();
+    }
+
+    // --- Playback Controls ---
+    function togglePlay() { if(!player) return; player.getPlayerState() === 1 ? player.pauseVideo() : player.playVideo(); }
+    function seek(n) { if(player) player.seekTo(player.getCurrentTime() + n, true); }
+    function userSeek() { if(player) player.seekTo(document.getElementById('seek').value, true); }
+    
+    function cycleSpeed() {
+        speedIdx = (speedIdx + 1) % speeds.length;
+        const s = speeds[speedIdx];
+        if(player) player.setPlaybackRate(s);
+        updateSpeedBtn();
+    }
+    
+    function updateSpeedBtn() {
+        document.getElementById('btn-speed').innerText = speeds[speedIdx] + "x";
+    }
+
+    // --- LOGIC PORTED FROM YOUR FILE (music_player.htm) ---
+    function runPreviewLogic(t) {
+        // 1. Scroll Active Line
+        const activeI = state.lyrics.findIndex((l, i) => {
+            const next = state.lyrics[i+1];
+            return l.time <= t && (!next || next.time > t);
+        });
+
+        if(activeI !== -1 && activeI !== state.idx) {
+            state.idx = activeI;
+            document.querySelectorAll('.line').forEach(l => l.classList.remove('active'));
+            const el = document.getElementById(`l-${activeI}`);
+            if(el) {
+                el.classList.add('active');
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // 2. Animate Words (Exact Logic)
+        if(state.mode === 'word') {
+            const line = state.lyrics[state.idx];
+            if(line && line.words) {
+                line.words.forEach((w, wi) => {
+                    const span = document.getElementById(`w-${state.idx}-${wi}`);
+                    if(!span) return;
+                    
+                    let wEnd = w.e;
+                    if(!wEnd) {
+                         if(line.words[wi+1]) wEnd = line.words[wi+1].s;
+                         else if(state.lyrics[state.idx+1]) wEnd = state.lyrics[state.idx+1].time;
+                         else wEnd = w.s + 1;
+                    }
+                    const dur = Math.max(0.2, wEnd - w.s);
+
+                    if (t >= w.s && t < wEnd) {
+                        // Word IS SINGING
+                        const p = (t - w.s) / dur;
+                        span.classList.add('swiping'); 
+                        span.classList.remove('sung');
+                        span.style.setProperty('--p', (p * 100) + '%');
+                        
+                        // LOGIC: Linear Lift for long words, Flat for short
+                        if(dur > TIME_THRESHOLD) {
+                            const lift = -2 * p; // Clamped to 2px as requested
+                            span.style.transform = `translate3d(0, ${lift}px, 0) scale(1)`;
+                        } else {
+                            span.style.transform = `translate3d(0, 0, 0) scale(1)`;
+                        }
+
+                    } else if (t >= wEnd) {
+                        // Word DONE
+                        span.classList.add('sung'); 
+                        span.classList.remove('swiping');
+                        span.style.removeProperty('--p');
+                        
+                        if(dur > TIME_THRESHOLD) {
+                             span.style.transform = `translate3d(0, -2px, 0) scale(1)`;
+                        } else {
+                             // Pop Logic for short words
+                             // Simple decay since we aren't tracking 'timePassed' precisely per frame here
+                             span.style.transform = `translate3d(0, -2px, 0) scale(1)`;
+                        }
+
+                    } else {
+                        // Word FUTURE
+                        span.classList.remove('sung', 'swiping');
+                        span.style.setProperty('--p', '0%');
+                        span.style.transform = `translate3d(0, 0, 0) scale(1)`;
+                    }
+                });
+            }
+        }
+    }
+
+    // --- Editor ---
+    function initEditor(mode) {
+        const raw = document.getElementById('raw-input').value.trim();
+        if(!raw) return alert("Paste lyrics first!");
+        
+        state.mode = mode;
+        state.lyrics = raw.split('\n').filter(x=>x.trim()).map(l => ({ 
+            text: l.trim(), time: null, 
+            words: l.trim().split(/\s+/).map(w => ({t:w, s:null, e:null})) 
+        }));
+        state.idx = 0; state.wIdx = 0;
+        
+        document.getElementById('btn-line-mode').classList.toggle('active', mode === 'line');
+        document.getElementById('btn-word-mode').classList.toggle('active', mode === 'word');
+        
+        const modeSelect = document.querySelector('.mode-select');
+        if (mode === 'line') {
+            modeSelect.style.opacity = '0.3'; modeSelect.style.pointerEvents = 'none';
+        } else {
+            modeSelect.style.opacity = '1'; modeSelect.style.pointerEvents = 'auto';
+        }
+
+        fullRender();
+        toggleSidebar(false);
+    }
+
+    function fullRender() {
+        const c = document.getElementById('lyrics-container');
+        c.className = `lyrics mode-${state.mode}`;
+        c.innerHTML = "";
+        
+        state.lyrics.forEach((l, i) => {
+            const div = document.createElement('div');
+            div.className = `line ${i === state.idx ? 'active' : ''}`;
+            div.id = `l-${i}`;
+            
+            const ts = document.createElement('span');
+            ts.className = 'ts-tag';
+            ts.id = `ts-${i}`;
+            ts.innerText = l.time ? fmtTime(l.time) : '--:--';
+            div.appendChild(ts);
+
+            if(state.mode === 'line') {
+                div.appendChild(document.createTextNode(l.text));
+            } else {
+                l.words.forEach((w, wi) => {
+                    const s = document.createElement('span');
+                    s.innerText = w.t + " ";
+                    s.className = 'word-span';
+                    s.id = `w-${i}-${wi}`;
+                    if(w.s !== null) s.classList.add('synced');
+                    if(i === state.idx && wi === state.wIdx && !state.isPreview) s.classList.add('now');
+                    s.onclick = (e) => { e.stopPropagation(); jumpTo(i, wi); };
+                    div.appendChild(s);
+                });
+            }
+            div.onclick = () => jumpTo(i, 0);
+            c.appendChild(div);
+        });
+        
+        setTimeout(() => scrollToActive(), 100);
+        updateContext();
+    }
+
+    function updateVisuals() {
+        document.querySelectorAll('.line').forEach((el, i) => {
+            if (i === state.idx) el.classList.add('active');
+            else el.classList.remove('active');
+        });
+
+        if(state.mode === 'word') {
+             document.querySelectorAll('.word-span').forEach(el => el.classList.remove('now'));
+             const curr = document.getElementById(`w-${state.idx}-${state.wIdx}`);
+             if(curr) {
+                 curr.classList.add('now');
+             }
+        }
+        scrollToActive();
+        updateContext();
+    }
+
+    function scrollToActive() {
+        const el = document.getElementById(`l-${state.idx}`);
+        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function jumpTo(i, w) { state.idx = i; state.wIdx = w; updateVisuals(); }
+
+    // --- Syncing ---
+    function setSyncMode(m) { 
+        state.syncMode = m; 
+        document.getElementById('sync-lbl').innerText = m.toUpperCase();
+        document.querySelectorAll('.mode-opt').forEach(el => el.classList.remove('active'));
+        document.getElementById(`mode-${m}`).classList.add('active');
+    }
+    
+    function syncDown(e) {
+        if(e) e.preventDefault();
+        if(!player || state.idx >= state.lyrics.length) return;
+        const t = player.getCurrentTime();
+        
+        document.getElementById('sync-btn').classList.add('active');
+        const line = state.lyrics[state.idx];
+        
+        if(state.mode === 'line') {
+            line.time = t; 
+            document.getElementById(`ts-${state.idx}`).innerText = fmtTime(t);
+            state.idx++;
+            updateVisuals();
+        } else {
+            state.holding = true;
+            const word = line.words[state.wIdx];
+            word.s = t;
+            
+            const wEl = document.getElementById(`w-${state.idx}-${state.wIdx}`);
+            if(wEl) wEl.classList.add('recording');
+            
+            if(state.wIdx > 0) line.words[state.wIdx-1].e = t;
+            if(state.syncMode === 'tap') nextWord();
+        }
+        genLRC();
+    }
+
+    function syncUp(e) {
+        if(e) e.preventDefault();
+        document.getElementById('sync-btn').classList.remove('active');
+        if(!state.holding) return;
+        state.holding = false;
+        
+        if(state.mode === 'word') {
+            const wEl = document.getElementById(`w-${state.idx}-${state.wIdx}`);
+            if(wEl) wEl.classList.remove('recording');
+
+            if(state.syncMode === 'hold' || state.syncMode === 'auto') {
+                const line = state.lyrics[state.idx];
+                if(line && line.words[state.wIdx]) {
+                    line.words[state.wIdx].e = player.getCurrentTime();
+                    if(wEl) wEl.classList.add('synced');
+                    nextWord(); 
+                }
+            }
+        }
+    }
+
+    function nextWord() {
+        const line = state.lyrics[state.idx];
+        if(state.wIdx === 0) {
+            line.time = line.words[0].s; 
+            document.getElementById(`ts-${state.idx}`).innerText = fmtTime(line.time);
+        }
+        
+        if(state.wIdx < line.words.length - 1) state.wIdx++;
+        else { state.idx++; state.wIdx = 0; }
+        
+        updateVisuals();
+    }
+
+    // --- Toggle/Export ---
+    function togglePreview() {
+        state.isPreview = !state.isPreview;
+        const app = document.getElementById('app');
+        const btn = document.getElementById('preview-btn');
+        if(state.isPreview) {
+            app.classList.add('is-preview');
+            btn.style.color = 'var(--accent)';
+            document.querySelectorAll('.ts-tag').forEach(e => e.style.display = 'none');
+        } else {
+            app.classList.remove('is-preview');
+            btn.style.color = 'white';
+            document.querySelectorAll('.ts-tag').forEach(e => e.style.display = 'inline-block');
+            fullRender(); 
+        }
+    }
+
+    function genLRC() {
+        const out = state.lyrics.map(l => {
+            if(!l.time) return '';
+            let line = `[${fmtTime(l.time, true)}]`;
+            if(state.mode === 'word') {
+                l.words.forEach(w => {
+                    const tag = w.s ? `<${fmtTime(w.s, true)}>` : '';
+                    line += ` ${tag}${w.t}`;
+                });
+            } else {
+                line += ` ${l.text}`;
+            }
+            return line;
+        }).join('\n');
+        document.getElementById('lrc-out').value = out;
+    }
+
+    function saveLRC() {
+        genLRC();
+        const c = document.getElementById('lrc-out').value;
+        if(!c) return alert("No lyrics to save.");
+        let n = (state.videoTitle || "export").replace(/[^a-z0-9 \-_]/gi, '').trim() + ".lrc";
+        const b = new Blob([c], {type:'text/plain'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(b);
+        a.download = n;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(()=> document.body.removeChild(a), 100);
+    }
+
+    function copyLRC() {
+        genLRC();
+        document.getElementById('lrc-out').select();
+        document.execCommand('copy');
+        alert("Copied to clipboard!");
+    }
+    
+    function applyOffset() {
+        const ms = parseFloat(document.getElementById('offset-ms').value) / 1000;
+        state.lyrics.forEach(l => {
+            if(l.time) l.time += ms;
+            l.words.forEach(w => { if(w.s) w.s += ms; if(w.e) w.e += ms; });
+        });
+        fullRender(); genLRC();
+    }
+
+    function updateContext() {
+        const ctx = document.getElementById('word-ctx');
+        if(state.mode !== 'word' || state.isPreview) { ctx.classList.remove('visible'); return; }
+        ctx.classList.add('visible');
+        const l = state.lyrics[state.idx];
+        if(!l) return;
+        const prev = state.wIdx > 0 ? l.words[state.wIdx-1].t : '...';
+        const curr = l.words[state.wIdx] ? l.words[state.wIdx].t : 'END';
+        document.getElementById('ctx-prev').innerText = prev;
+        document.getElementById('ctx-curr').innerText = curr;
+    }
+    
+    function fmtTime(s, ms=false) {
+        if(!s) return ms ? "00:00.00" : "0:00";
+        const m = Math.floor(s/60);
+        const sc = Math.floor(s%60);
+        const msc = Math.floor((s%1)*100);
+        return `${m.toString().padStart(2,'0')}:${sc.toString().padStart(2,'0')}${ms?'.'+msc.toString().padStart(2,'0'):''}`;
+    }
+    function toggleSidebar(o) { 
+        const s = document.getElementById('sidebar');
+        s.classList.toggle('open', o); 
+        if(window.innerWidth >= 800) {
+            document.getElementById('sidebar').classList.toggle('closed', !o);
+        }
+    }
+    
+    document.addEventListener('keydown', e => {
+        if(e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+        if(e.code === 'Space') { e.preventDefault(); togglePlay(); }
+        if(e.code === 'Enter') { e.preventDefault(); syncDown(); }
+        if(e.code === 'ArrowRight') seek(5);
+        if(e.code === 'ArrowLeft') seek(-5);
+    });
+    document.addEventListener('keyup', e => { if(e.code === 'Enter') syncUp(); });
+
+</script>
+</body>
+</html>
