@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>eLRC v0.9</title>
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
@@ -14,9 +14,14 @@
             --mono: 'JetBrains Mono', monospace;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body { background: var(--bg); color: var(--text); font-family: var(--font); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        .app { display: flex; height: 100%; position: relative; z-index: 10; overflow: hidden; }
+        /* FIX 1: Use 100dvh to respect browser bars */
+        body { 
+            background: var(--bg); color: var(--text); font-family: var(--font); margin: 0; 
+            height: 100dvh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; 
+        }
+        
+        .app { display: flex; height: 100%; width: 100%; position: relative; z-index: 10; overflow: hidden; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
@@ -32,6 +37,8 @@
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             box-shadow: 10px 0 50px rgba(0,0,0,0.8);
             overflow-y: auto;
+            /* Safe area for sidebar bottom */
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
         }
         .sidebar.open { transform: translateX(0); }
         
@@ -42,11 +49,7 @@
         .group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
         label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; font-weight: 700; }
         
-        input[type="text"], input[type="number"], textarea {
-            background: var(--surface); border: 1px solid var(--border); color: white;
-            padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.85rem; width: 100%;
-        }
-        input:focus, textarea:focus { border-color: var(--accent); }
+        textarea, input[type="text"], input[type="number"] { width: 100%; background: var(--surface); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.85rem; }
         textarea { resize: none; font-family: var(--mono); height: 120px; }
 
         .btn {
@@ -68,7 +71,7 @@
         #yt-player { width: 100%; height: 100%; }
 
         /* --- EDITOR AREA --- */
-        .editor { flex: 1; position: relative; display: flex; flex-direction: column; background: transparent; transition: margin-left 0.3s ease; }
+        .editor { flex: 1; position: relative; display: flex; flex-direction: column; background: transparent; transition: margin-left 0.3s ease; height: 100%; }
         @media(min-width: 800px) { .sidebar { position: relative; transform: none; box-shadow: none; border-right: 1px solid #222; width: 320px; } .sidebar.closed { margin-left: -320px; } }
 
         .top-bar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); z-index: 20; flex-shrink: 0; }
@@ -76,7 +79,8 @@
 
         /* --- LYRICS CONTAINER --- */
         .lyrics { 
-            flex: 1; overflow-y: auto; padding: 100px 0 250px 0; 
+            flex: 1; overflow-y: auto; 
+            padding: 100px 0 200px 0; /* Extra padding at bottom for dock */
             scroll-behavior: smooth; 
             mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
             -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
@@ -94,15 +98,14 @@
         .line.active { color: #fff; opacity: 1; filter: blur(0px); transform: scale(1); }
         .line:hover { background: rgba(255,255,255,0.03); }
 
-        /* --- WORD ANIMATION (Using Manual Logic) --- */
+        /* --- WORD ANIMATION --- */
         .word-span {
             display: inline-block; white-space: pre; position: relative;
             cursor: pointer; 
-            /* REMOVED CSS TRANSITIONS for transform/color to allow JS control */
             vertical-align: bottom; transform-origin: center bottom;
         }
 
-        /* Gradient Fill (Managed by JS --p variable) */
+        /* Preview Animations */
         .is-preview .word-span {
             color: rgba(255,255,255,0.3);
             background-image: linear-gradient(90deg, #ffffff calc(var(--p) - 10%), rgba(255,255,255,0.3) calc(var(--p) + 5%));
@@ -113,15 +116,13 @@
             will-change: transform, opacity;
         }
 
-        .is-preview .word-span.sung {
-            background: none; -webkit-text-fill-color: #ffffff; color: #ffffff;
-            text-shadow: none;
-        }
+        .is-preview .word-span.sung { background: none; -webkit-text-fill-color: #ffffff; color: #ffffff; text-shadow: none; }
         
         /* Editor State */
         .app:not(.is-preview) .word-span.synced { color: #888; border-bottom: 2px solid #333; }
         .app:not(.is-preview) .line.active .word-span.synced { color: #ccc; border-color: var(--accent); }
         .app:not(.is-preview) .line.active .word-span.now { color: var(--accent); background: rgba(255,255,255,0.1); border-radius: 4px; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
+        
         .app:not(.is-preview) .line.active .word-span.recording {
             color: #fff !important; background: linear-gradient(90deg, #fff, #aaa);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -130,14 +131,26 @@
 
         .ts-tag { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); margin-right: 15px; display: inline-block; vertical-align: middle; opacity: 0.5; }
 
-        /* --- DOCK --- */
+        /* --- DOCK (FIXED POSITIONING) --- */
         .dock {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 550px;
-            background: rgba(20,20,20,0.85); backdrop-filter: blur(20px);
+            position: absolute; 
+            left: 50%; transform: translateX(-50%); width: 92%; max-width: 550px;
+            background: rgba(20,20,20,0.9); backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px;
             display: flex; flex-direction: column; gap: 15px; z-index: 100;
             box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            
+            /* FIX 2: Dynamic Bottom Calculation + Safe Area */
+            bottom: calc(20px + env(safe-area-inset-bottom)); 
         }
+        
+        /* Extra lift for mobile browsers with toolbars */
+        @media (max-width: 800px) {
+            .dock {
+                bottom: calc(50px + env(safe-area-inset-bottom));
+            }
+        }
+
         .sliders { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 0.75rem; color: #888; }
         input[type=range] { -webkit-appearance: none; background: #333; height: 4px; border-radius: 2px; flex: 1; padding: 0; border: none; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: white; border-radius: 50%; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
@@ -161,7 +174,6 @@
         .mode-opt { flex: 1; font-size: 0.7rem; font-weight: 600; color: #666; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: 0.2s; }
         .mode-opt.active { background: #333; color: white; }
 
-        /* Credits */
         .credits { text-align: center; color: #333; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; opacity: 0.5; }
         .sidebar .credits { margin-top: auto; padding-top: 20px; border-top: 1px solid #111; }
 
@@ -216,12 +228,12 @@
             <label>Raw Lyrics</label>
             <textarea id="raw-input" placeholder="Paste lyrics here..."></textarea>
             <div style="display:flex; gap:5px;">
-                <button class="btn" onclick="initEditor(state.mode)">Update</button>
+                <button class="btn" style="flex:1" onclick="initEditor(state.mode)">Update</button>
                 <button class="btn" onclick="searchLyrics()">🔍 Search</button>
             </div>
         </div>
 
-        <div class="group">
+        <div class="group" style="margin-top:auto;">
             <label>Export</label>
             <div style="display:flex; gap:5px; margin-bottom:5px;">
                 <input type="number" id="offset-ms" placeholder="Offset (ms)" value="0">
@@ -290,7 +302,7 @@
 
 <script>
     // --- Config ---
-    const TIME_THRESHOLD = 0.37; // Logic from your file
+    const TIME_THRESHOLD = 0.37;
     let player, timer;
     let state = {
         lyrics: [], mode: 'line', idx: 0, wIdx: 0,
@@ -307,8 +319,8 @@
         const vidId = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
         if(!vidId) return alert("Invalid URL");
         if(player) player.destroy();
-        player = new YT.Player('yt-player', {
-            height: '100%', width: '100%', videoId: vidId,
+        player = new YT.Player('yt-player-container', {
+            height: '0', width: '0', videoId: vidId,
             playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0 },
             events: { 
                 'onStateChange': (e) => document.getElementById('play-btn').textContent = (e.data === 1) ? "II" : "▶",
@@ -341,10 +353,9 @@
         const loop = () => {
             if(player && player.getCurrentTime) {
                 const t = player.getCurrentTime();
-                const d = player.getDuration();
-                
                 document.getElementById('curr-t').innerText = fmtTime(t);
                 document.getElementById('time-display').innerText = fmtTime(t, true);
+                const d = player.getDuration();
                 if(d) {
                     document.getElementById('dur-t').innerText = fmtTime(d);
                     const s = document.getElementById('seek');
@@ -357,7 +368,7 @@
         loop();
     }
 
-    // --- Playback Controls ---
+    // --- Controls ---
     function togglePlay() { if(!player) return; player.getPlayerState() === 1 ? player.pauseVideo() : player.playVideo(); }
     function seek(n) { if(player) player.seekTo(player.getCurrentTime() + n, true); }
     function userSeek() { if(player) player.seekTo(document.getElementById('seek').value, true); }
@@ -369,13 +380,10 @@
         updateSpeedBtn();
     }
     
-    function updateSpeedBtn() {
-        document.getElementById('btn-speed').innerText = speeds[speedIdx] + "x";
-    }
+    function updateSpeedBtn() { document.getElementById('btn-speed').innerText = speeds[speedIdx] + "x"; }
 
-    // --- LOGIC PORTED FROM YOUR FILE (music_player.htm) ---
+    // --- Animation Logic (Custom) ---
     function runPreviewLogic(t) {
-        // 1. Scroll Active Line
         const activeI = state.lyrics.findIndex((l, i) => {
             const next = state.lyrics[i+1];
             return l.time <= t && (!next || next.time > t);
@@ -391,7 +399,6 @@
             }
         }
 
-        // 2. Animate Words (Exact Logic)
         if(state.mode === 'word') {
             const line = state.lyrics[state.idx];
             if(line && line.words) {
@@ -399,48 +406,25 @@
                     const span = document.getElementById(`w-${state.idx}-${wi}`);
                     if(!span) return;
                     
-                    let wEnd = w.e;
-                    if(!wEnd) {
-                         if(line.words[wi+1]) wEnd = line.words[wi+1].s;
-                         else if(state.lyrics[state.idx+1]) wEnd = state.lyrics[state.idx+1].time;
-                         else wEnd = w.s + 1;
-                    }
+                    let wEnd = w.e || (line.words[wi+1] ? line.words[wi+1].s : w.s + 1);
                     const dur = Math.max(0.2, wEnd - w.s);
 
                     if (t >= w.s && t < wEnd) {
-                        // Word IS SINGING
                         const p = (t - w.s) / dur;
-                        span.classList.add('swiping'); 
-                        span.classList.remove('sung');
+                        span.classList.add('swiping'); span.classList.remove('sung');
                         span.style.setProperty('--p', (p * 100) + '%');
                         
-                        // LOGIC: Linear Lift for long words, Flat for short
-                        if(dur > TIME_THRESHOLD) {
-                            const lift = -2 * p; // Clamped to 2px as requested
-                            span.style.transform = `translate3d(0, ${lift}px, 0) scale(1)`;
-                        } else {
-                            span.style.transform = `translate3d(0, 0, 0) scale(1)`;
-                        }
+                        const lift = dur > TIME_THRESHOLD ? -2 * p : 0;
+                        span.style.transform = `translate3d(0, ${lift}px, 0)`;
 
                     } else if (t >= wEnd) {
-                        // Word DONE
-                        span.classList.add('sung'); 
-                        span.classList.remove('swiping');
+                        span.classList.add('sung'); span.classList.remove('swiping');
                         span.style.removeProperty('--p');
-                        
-                        if(dur > TIME_THRESHOLD) {
-                             span.style.transform = `translate3d(0, -2px, 0) scale(1)`;
-                        } else {
-                             // Pop Logic for short words
-                             // Simple decay since we aren't tracking 'timePassed' precisely per frame here
-                             span.style.transform = `translate3d(0, -2px, 0) scale(1)`;
-                        }
-
+                        span.style.transform = `translate3d(0, -2px, 0)`;
                     } else {
-                        // Word FUTURE
                         span.classList.remove('sung', 'swiping');
                         span.style.setProperty('--p', '0%');
-                        span.style.transform = `translate3d(0, 0, 0) scale(1)`;
+                        span.style.transform = `translate3d(0, 0, 0)`;
                     }
                 });
             }
@@ -520,9 +504,7 @@
         if(state.mode === 'word') {
              document.querySelectorAll('.word-span').forEach(el => el.classList.remove('now'));
              const curr = document.getElementById(`w-${state.idx}-${state.wIdx}`);
-             if(curr) {
-                 curr.classList.add('now');
-             }
+             if(curr) curr.classList.add('now');
         }
         scrollToActive();
         updateContext();
@@ -604,7 +586,6 @@
         updateVisuals();
     }
 
-    // --- Toggle/Export ---
     function togglePreview() {
         state.isPreview = !state.isPreview;
         const app = document.getElementById('app');
@@ -705,5 +686,6 @@
     document.addEventListener('keyup', e => { if(e.code === 'Enter') syncUp(); });
 
 </script>
+<div id="yt-player-container" style="display:none;"></div>
 </body>
 </html>
