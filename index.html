@@ -54,7 +54,6 @@
         .group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
         label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; font-weight: 700; padding-left: 5px; }
         
-        /* Rounded Inputs */
         textarea, input[type="text"], input[type="number"] { 
             width: 100%; background: var(--surface); border: 1px solid var(--border); 
             color: white; padding: 12px; border-radius: 12px; 
@@ -62,10 +61,9 @@
         }
         textarea { resize: none; font-family: var(--mono); height: 120px; }
 
-        /* Rounded Buttons */
         .btn { 
             background: var(--surface); border: 1px solid var(--border); color: white; 
-            padding: 12px; border-radius: 99px; /* FULL OVAL */
+            padding: 12px; border-radius: 99px; 
             cursor: pointer; font-weight: 600; font-size: 0.85rem; 
             transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; 
         }
@@ -84,7 +82,6 @@
         .editor { flex: 1; position: relative; display: flex; flex-direction: column; background: transparent; transition: margin-left 0.3s ease; height: 100%; }
         @media(min-width: 800px) { .sidebar { position: relative; transform: none; box-shadow: none; border-right: 1px solid #222; width: 320px; } .sidebar.closed { margin-left: -320px; } }
         
-        /* Top Bar */
         .top-bar { 
             height: 60px; display: flex; align-items: center; justify-content: space-between; 
             padding: 0 20px; background: rgba(0,0,0,0.9); border-bottom: 1px solid #111; 
@@ -145,7 +142,6 @@
         .line-content { flex: 1; }
         .word-span { display: inline-block; white-space: pre; position: relative; cursor: pointer; vertical-align: bottom; transform-origin: center bottom; }
         
-        /* Gradient Wipe Effect */
         .is-preview .word-span {
             color: rgba(255,255,255,0.3);
             background-image: linear-gradient(90deg, #ffffff calc(var(--p) - 10%), rgba(255,255,255,0.3) calc(var(--p) + 5%));
@@ -156,12 +152,10 @@
         }
         .is-preview .word-span.sung { background: none; -webkit-text-fill-color: #ffffff; color: #ffffff; text-shadow: none; }
         
-        /* Editor State */
         .app:not(.is-preview) .word-span.synced { color: #888; border-bottom: 2px solid #333; }
         .app:not(.is-preview) .line.active .word-span.synced { color: #ccc; border-color: var(--accent); }
         .app:not(.is-preview) .line.active .word-span.now { color: var(--accent); background: rgba(255,255,255,0.1); border-radius: 4px; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
         
-        /* Recording Glow */
         .app:not(.is-preview) .line.active .word-span.recording {
             color: #fff !important; background: transparent !important;
             text-shadow: 0 0 15px rgba(255,255,255,1.0), 0 0 30px rgba(255,255,255,0.5); 
@@ -173,10 +167,7 @@
         /* --- DOCK --- */
         .dock {
             position: absolute; left: 50%; transform: translateX(-50%); width: 92%; max-width: 550px;
-            background: #111; 
-            border: 1px solid #333; 
-            border-radius: 30px; 
-            padding: 20px;
+            background: #111; border: 1px solid #333; border-radius: 30px; padding: 20px;
             display: flex; flex-direction: column; gap: 15px; z-index: 100;
             box-shadow: 0 20px 60px rgba(0,0,0,0.9);
             bottom: calc(20px + env(safe-area-inset-bottom)); 
@@ -212,8 +203,8 @@
 
         .ctx-ui {
             position: fixed; bottom: 220px; left: 50%; transform: translateX(-50%);
-            background: #111; border: 1px solid #333; padding: 6px 12px; border-radius: 20px;
-            font-size: 0.8rem; font-weight: 600; display: flex; gap: 10px;
+            background: #111; border: 1px solid #333; padding: 4px 10px; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 600; display: flex; gap: 10px;
             opacity: 0; pointer-events: none; transition: 0.2s; 
         }
         .ctx-ui.visible { opacity: 1; }
@@ -478,18 +469,41 @@
         }
     }
 
+    // --- SMART INIT: CLEAN OR IMPORT ---
     function initEditor(mode) {
-        const raw = document.getElementById('raw-input').value.trim();
+        let raw = document.getElementById('raw-input').value.trim();
         if(!raw) return alert("Paste lyrics first!");
-        state.mode = mode;
         
+        // CHECK FOR TIMESTAMPS
+        const hasTimestamps = /\[\d{2}:\d{2}/.test(raw) || /\<\d{2}:\d{2}/.test(raw);
+        
+        if (hasTimestamps) {
+            // ASK USER: CLEAN OR KEEP?
+            const doClean = confirm("Synced lyrics detected!\n\nClick OK to REMOVE timestamps (Plain Lyrics).");
+            if(doClean) {
+                // Remove Line Times
+                raw = raw.replace(/\[\d{2}:\d{2}(\.\d+)?\]/g, '');
+                // Remove Word Times
+                raw = raw.replace(/\<\d{2}:\d{2}(\.\d+)?\>/g, '');
+                // Remove Tags
+                raw = raw.replace(/v[12]:/gi, '').replace(/\[bg:/gi, '').replace(/\]/g, '');
+                // Remove Empty Lines & Metadata
+                raw = raw.replace(/^\[.*?\]$/gm, '').replace(/^\s*[\r\n]/gm, '');
+            }
+        }
+
+        state.mode = mode;
         let lastType = 'v1'; 
+        
         state.lyrics = raw.split('\n').filter(x=>x.trim()).map(l => {
             let txt = l.trim();
             let type = lastType; 
+            
+            // Detection
             if(txt.toLowerCase().startsWith('[v2]')) { type = 'v2'; txt = txt.substring(4).trim(); }
             else if(txt.toLowerCase().startsWith('[bg:')) { type = 'bg'; txt = txt.replace(/^\[bg:/i, '').replace(/\]$/, '').trim(); }
             else if(txt.toLowerCase().startsWith('[v1]')) { type = 'v1'; txt = txt.substring(4).trim(); }
+            
             lastType = type;
             return { text: txt, type: type, time: null, words: txt.split(/\s+/).map(w => ({t:w, s:null, e:null})) };
         });
