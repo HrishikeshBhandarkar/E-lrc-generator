@@ -17,7 +17,7 @@
             --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
             --mono: 'JetBrains Mono', monospace;
             
-            /* Tag Colors (Monochrome Aesthetic) */
+            /* Tag Colors */
             --tag-v1: #ffffff;
             --tag-v2: #cccccc;
             --tag-bg: #444444;
@@ -72,7 +72,7 @@
         .btn.sm { padding: 6px 16px; font-size: 0.75rem; width: auto; flex: initial; }
         
         .toggle-group { display: flex; gap: 5px; background: var(--surface); padding: 4px; border-radius: 99px; border: 1px solid var(--border); }
-        .toggle-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 99px; font-size: 0.8rem; color: var(--muted); transition: 0.2s; }
+        .toggle-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 99px; font-size: 0.8rem; color: var(--muted); transition: 0.2s; background: transparent; border: none; font-family: inherit; font-weight: 600; }
         .toggle-btn.active { background: #222; color: white; font-weight: bold; }
 
         .yt-wrapper { margin-bottom: 15px; background: #000; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; height: 180px; position: relative; flex-shrink: 0; }
@@ -91,12 +91,9 @@
 
         .lyrics { 
             flex: 1; overflow-y: auto; padding: 100px 0 250px 0; 
-            scroll-behavior: smooth; 
-            mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
-            -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+            scroll-behavior: smooth; mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
         }
 
-        /* --- LINES & ALIGNMENT --- */
         .line {
             padding: 12px 24px; color: rgba(255,255,255,0.3); transition: all 0.3s ease;
             font-size: 1.5rem; font-weight: 700; line-height: 1.4; transform-origin: center center; 
@@ -110,7 +107,6 @@
 
         .line.active { color: #fff; opacity: 1; transform: scale(1); }
         
-        /* BG POP ANIMATION */
         .app.is-preview .line.bg {
             opacity: 0; max-height: 0; margin-top: -10px; margin-bottom: 0; padding-top: 0; padding-bottom: 0;
             transform: translateY(-20px) scale(0.8); overflow: hidden;
@@ -121,7 +117,6 @@
             transform: translateY(0) scale(1);
         }
 
-        /* --- TAG BADGES (Monochrome) --- */
         .tag-badge {
             font-size: 0.55rem; font-weight: 800; padding: 4px 8px; border-radius: 6px;
             cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
@@ -138,7 +133,6 @@
         
         .app.is-preview .tag-badge, .app.is-preview .ts-tag { display: none; }
 
-        /* --- SWIPE ANIMATION --- */
         .line-content { flex: 1; }
         .word-span { display: inline-block; white-space: pre; position: relative; cursor: pointer; vertical-align: bottom; transform-origin: center bottom; }
         
@@ -164,10 +158,10 @@
 
         .ts-tag { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); margin-right: 15px; display: inline-block; vertical-align: middle; opacity: 0.5; }
 
-        /* --- DOCK --- */
+        /* --- DOCK & CONTROLS --- */
         .dock {
             position: absolute; left: 50%; transform: translateX(-50%); width: 92%; max-width: 550px;
-            background: #111; border: 1px solid #333; border-radius: 30px; padding: 20px;
+            background: #111; border: 1px solid #333; border-radius: 40px; padding: 20px;
             display: flex; flex-direction: column; gap: 15px; z-index: 100;
             box-shadow: 0 20px 60px rgba(0,0,0,0.9);
             bottom: calc(20px + env(safe-area-inset-bottom)); 
@@ -181,21 +175,40 @@
         input[type=range] { -webkit-appearance: none; background: #333; height: 4px; border-radius: 2px; flex: 1; padding: 0; border: none; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: white; border-radius: 50%; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
         
-        .controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .controls { display: flex; align-items: center; justify-content: center; gap: 8px; }
         .c-btn { background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer; opacity: 0.7; width: 40px; }
         .speed-btn { font-size: 0.8rem; font-weight: 700; width: auto; padding: 0 4px; color: var(--accent); opacity: 0.6; }
 
         .play-btn { width: 50px; height: 50px; background: white; color: black; border-radius: 50%; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         
+        /* HUGE SYNC BUTTON */
         .sync-btn {
-            flex: 2; height: 50px; background: #222; border: 1px solid #333; border-radius: 25px; 
-            color: white; font-weight: 800; letter-spacing: 1px; display: flex; align-items: center; justify-content: center;
-            transition: 0.1s; font-size: 0.9rem;
+            flex: 2; 
+            height: 64px; /* Big Thumb Target */
+            background: #222; border: 1px solid #333; 
+            border-radius: 32px; /* Full Rounded Pill */
+            color: white; font-weight: 800; letter-spacing: 1px; 
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.1s; font-size: 1rem;
+            min-width: 100px; /* Prevent shrinking */
         }
         .sync-btn:active, .sync-btn.active { background: white; color: black; transform: scale(0.98); }
 
-        .mode-select { display: flex; gap: 5px; flex: 1.5; background: #000; padding: 4px; border-radius: 20px; border: 1px solid #222; }
-        .mode-opt { flex: 1; font-size: 0.7rem; font-weight: 600; color: #666; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 16px; transition: 0.2s; }
+        /* HUGE MODE TOGGLES */
+        .mode-select { 
+            display: flex; gap: 4px; flex: 1.5; 
+            background: #000; padding: 4px; 
+            border-radius: 32px; border: 1px solid #222; 
+            height: 64px; /* Matches Sync Button */
+        }
+        .mode-opt { 
+            flex: 1; 
+            height: 100%; /* Fill container */
+            font-size: 0.75rem; font-weight: 700; color: #666; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; 
+            border-radius: 28px; transition: 0.2s; 
+            border: none; background: transparent; font-family: inherit;
+        }
         .mode-opt.active { background: #333; color: white; }
 
         .credits { text-align: center; color: #333; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; opacity: 0.5; }
@@ -231,8 +244,8 @@
         <div class="group">
             <label>Lyrics Mode</label>
             <div class="toggle-group">
-                <div class="toggle-btn active" id="btn-line-mode" onclick="initEditor('line')">Line Sync</div>
-                <div class="toggle-btn" id="btn-word-mode" onclick="initEditor('word')">Word Sync</div>
+                <button class="toggle-btn active" id="btn-line-mode" onclick="initEditor('line')">Line Sync</button>
+                <button class="toggle-btn" id="btn-word-mode" onclick="initEditor('word')">Word Sync</button>
             </div>
         </div>
 
@@ -303,9 +316,9 @@
                 </button>
 
                 <div class="mode-select">
-                    <div class="mode-opt active" id="mode-tap" onclick="setSyncMode('tap')">Tap</div>
-                    <div class="mode-opt" id="mode-hold" onclick="setSyncMode('hold')">Hold</div>
-                    <div class="mode-opt" id="mode-auto" onclick="setSyncMode('auto')">Auto</div>
+                    <button class="mode-opt active" id="mode-tap" onclick="setSyncMode('tap')">Tap</button>
+                    <button class="mode-opt" id="mode-hold" onclick="setSyncMode('hold')">Hold</button>
+                    <button class="mode-opt" id="mode-auto" onclick="setSyncMode('auto')">Auto</button>
                 </div>
             </div>
         </div>
@@ -469,26 +482,23 @@
         }
     }
 
-    // --- SMART INIT: CLEAN OR IMPORT ---
+    // --- SMART INIT: CLEAN OR KEEP ---
     function initEditor(mode) {
         let raw = document.getElementById('raw-input').value.trim();
         if(!raw) return alert("Paste lyrics first!");
         
-        // CHECK FOR TIMESTAMPS
         const hasTimestamps = /\[\d{2}:\d{2}/.test(raw) || /\<\d{2}:\d{2}/.test(raw);
-        
+        let keepSync = false;
+
         if (hasTimestamps) {
-            // ASK USER: CLEAN OR KEEP?
-            const doClean = confirm("Synced lyrics detected!\n\nClick OK to REMOVE timestamps (Plain Lyrics).");
+            const doClean = confirm("Synced lyrics detected!\n\nOK: Remove Timestamps (Reset)\nCancel: Keep Existing Sync");
             if(doClean) {
-                // Remove Line Times
                 raw = raw.replace(/\[\d{2}:\d{2}(\.\d+)?\]/g, '');
-                // Remove Word Times
                 raw = raw.replace(/\<\d{2}:\d{2}(\.\d+)?\>/g, '');
-                // Remove Tags
                 raw = raw.replace(/v[12]:/gi, '').replace(/\[bg:/gi, '').replace(/\]/g, '');
-                // Remove Empty Lines & Metadata
                 raw = raw.replace(/^\[.*?\]$/gm, '').replace(/^\s*[\r\n]/gm, '');
+            } else {
+                keepSync = true;
             }
         }
 
@@ -498,22 +508,47 @@
         state.lyrics = raw.split('\n').filter(x=>x.trim()).map(l => {
             let txt = l.trim();
             let type = lastType; 
-            
-            // Detection
-            if(txt.toLowerCase().startsWith('[v2]')) { type = 'v2'; txt = txt.substring(4).trim(); }
+            let lineTime = null;
+
+            if(keepSync) {
+                const timeMatch = txt.match(/^\[(\d{2}:\d{2}(\.\d+)?)\]/);
+                if(timeMatch) {
+                    const parts = timeMatch[1].split(':');
+                    lineTime = parseInt(parts[0])*60 + parseFloat(parts[1]);
+                    txt = txt.replace(/^\[.*?\]/, '').trim();
+                }
+            }
+
+            if(txt.toLowerCase().startsWith('v2:')) { type = 'v2'; txt = txt.substring(3).trim(); } 
+            else if(txt.toLowerCase().startsWith('[v2]')) { type = 'v2'; txt = txt.substring(4).trim(); }
             else if(txt.toLowerCase().startsWith('[bg:')) { type = 'bg'; txt = txt.replace(/^\[bg:/i, '').replace(/\]$/, '').trim(); }
-            else if(txt.toLowerCase().startsWith('[v1]')) { type = 'v1'; txt = txt.substring(4).trim(); }
+            else if(txt.toLowerCase().startsWith('v1:')) { type = 'v1'; txt = txt.substring(3).trim(); }
             
             lastType = type;
-            return { text: txt, type: type, time: null, words: txt.split(/\s+/).map(w => ({t:w, s:null, e:null})) };
+            
+            return { 
+                text: txt, 
+                type: type, 
+                time: lineTime, 
+                words: txt.split(/\s+/).map(w => {
+                    let wTime = null;
+                    let cleanW = w;
+                    if(keepSync) {
+                        const wMatch = w.match(/\<(\d{2}:\d{2}(\.\d+)?)\>/);
+                        if(wMatch) {
+                            const parts = wMatch[1].split(':');
+                            wTime = parseInt(parts[0])*60 + parseFloat(parts[1]);
+                            cleanW = w.replace(/\<.*?\>/, '');
+                        }
+                    }
+                    return {t:cleanW, s:wTime, e:null};
+                }) 
+            };
         });
         
         state.idx = 0; state.wIdx = 0;
         document.getElementById('btn-line-mode').classList.toggle('active', mode === 'line');
         document.getElementById('btn-word-mode').classList.toggle('active', mode === 'word');
-        const modeSelect = document.querySelector('.mode-select');
-        if (mode === 'line') { modeSelect.style.opacity = '0.3'; modeSelect.style.pointerEvents = 'none'; } 
-        else { modeSelect.style.opacity = '1'; modeSelect.style.pointerEvents = 'auto'; }
         
         fullRender(); toggleSidebar(false);
     }
@@ -708,7 +743,6 @@
     function applyOffset() { const ms = parseFloat(document.getElementById('offset-ms').value)/1000; state.lyrics.forEach(l => { if(l.time) l.time+=ms; l.words.forEach(w => { if(w.s) w.s+=ms; if(w.e) w.e+=ms; }); }); fullRender(); genLRC(); }
     function updateContext() { const ctx = document.getElementById('word-ctx'); if(state.mode !== 'word' || state.isPreview) { ctx.classList.remove('visible'); return; } ctx.classList.add('visible'); const l = state.lyrics[state.idx]; if(!l) return; const prev = state.wIdx > 0 ? l.words[state.wIdx-1].t : '...'; const curr = l.words[state.wIdx] ? l.words[state.wIdx].t : 'END'; document.getElementById('ctx-prev').innerText = prev; document.getElementById('ctx-curr').innerText = curr; }
     
-    // FIXED MATH: 3-Digit Precision (Safe)
     function fmtTime(s, ms=false) { 
         if(!s) return ms?"00:00.000":"0:00"; 
         const m = Math.floor(s/60); 
@@ -732,7 +766,9 @@
     const dockEl = document.querySelector('.dock');
     let dockOffsetY = 0; let dockStartY = 0; let isDraggingDock = false; let longPressTimer = null;
     dockEl.addEventListener('touchstart', (e) => {
-        if(e.target.closest('button') || e.target.closest('input')) return;
+        // IGNORE TOUCHES ON BUTTONS/INPUTS
+        if(e.target.closest('button') || e.target.closest('input') || e.target.closest('.mode-select')) return;
+        
         dockStartY = e.touches[0].clientY;
         longPressTimer = setTimeout(() => { isDraggingDock = true; dockEl.classList.add('is-dragging'); if(navigator.vibrate) navigator.vibrate(50); }, 500); 
     });
