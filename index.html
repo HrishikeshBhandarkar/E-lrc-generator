@@ -72,7 +72,10 @@
         .btn.sm { padding: 6px 16px; font-size: 0.75rem; width: auto; flex: initial; }
         
         .toggle-group { display: flex; gap: 5px; background: var(--surface); padding: 4px; border-radius: 99px; border: 1px solid var(--border); }
-        .toggle-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 99px; font-size: 0.8rem; color: var(--muted); transition: 0.2s; background: transparent; border: none; font-family: inherit; font-weight: 600; }
+        .toggle-btn { 
+            flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 99px; 
+            font-size: 0.8rem; color: var(--muted); transition: 0.2s; background: transparent; border: none; font-family: inherit; font-weight: 600;
+        }
         .toggle-btn.active { background: #222; color: white; font-weight: bold; }
 
         .yt-wrapper { margin-bottom: 15px; background: #000; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; height: 180px; position: relative; flex-shrink: 0; }
@@ -91,7 +94,7 @@
 
         .lyrics { 
             flex: 1; overflow-y: auto; padding: 100px 0 250px 0; 
-            scroll-behavior: smooth; mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+            scroll-behavior: smooth; content-visibility: auto; 
         }
 
         .line {
@@ -158,7 +161,6 @@
 
         .ts-tag { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); margin-right: 15px; display: inline-block; vertical-align: middle; opacity: 0.5; }
 
-        /* --- DOCK & CONTROLS --- */
         .dock {
             position: absolute; left: 50%; transform: translateX(-50%); width: 92%; max-width: 550px;
             background: #111; border: 1px solid #333; border-radius: 40px; padding: 20px;
@@ -181,33 +183,18 @@
 
         .play-btn { width: 50px; height: 50px; background: white; color: black; border-radius: 50%; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         
-        /* HUGE SYNC BUTTON */
         .sync-btn {
-            flex: 2; 
-            height: 64px; /* Big Thumb Target */
-            background: #222; border: 1px solid #333; 
-            border-radius: 32px; /* Full Rounded Pill */
-            color: white; font-weight: 800; letter-spacing: 1px; 
-            display: flex; align-items: center; justify-content: center;
-            transition: 0.1s; font-size: 1rem;
-            min-width: 100px; /* Prevent shrinking */
+            flex: 2; height: 64px; background: #222; border: 1px solid #333; border-radius: 32px; 
+            color: white; font-weight: 800; letter-spacing: 1px; display: flex; align-items: center; justify-content: center;
+            transition: 0.1s; font-size: 1rem; min-width: 100px; 
         }
         .sync-btn:active, .sync-btn.active { background: white; color: black; transform: scale(0.98); }
 
-        /* HUGE MODE TOGGLES */
-        .mode-select { 
-            display: flex; gap: 4px; flex: 1.5; 
-            background: #000; padding: 4px; 
-            border-radius: 32px; border: 1px solid #222; 
-            height: 64px; /* Matches Sync Button */
-        }
+        .mode-select { display: flex; gap: 4px; flex: 1.5; background: #000; padding: 4px; border-radius: 32px; border: 1px solid #222; height: 64px; }
         .mode-opt { 
-            flex: 1; 
-            height: 100%; /* Fill container */
-            font-size: 0.75rem; font-weight: 700; color: #666; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; 
-            border-radius: 28px; transition: 0.2s; 
-            border: none; background: transparent; font-family: inherit;
+            flex: 1; height: 100%; font-size: 0.75rem; font-weight: 700; color: #666; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; border-radius: 28px; 
+            transition: 0.2s; border: none; background: transparent; font-family: inherit;
         }
         .mode-opt.active { background: #333; color: white; }
 
@@ -482,7 +469,6 @@
         }
     }
 
-    // --- SMART INIT: CLEAN OR KEEP ---
     function initEditor(mode) {
         let raw = document.getElementById('raw-input').value.trim();
         if(!raw) return alert("Paste lyrics first!");
@@ -738,7 +724,21 @@
         document.getElementById('lrc-out').value = out;
     }
 
-    function saveLRC() { genLRC(); const c = document.getElementById('lrc-out').value; if(!c) return alert("No lyrics!"); let n = (state.videoTitle||"export").replace(/[^a-z0-9 \-_]/gi, '') + ".lrc"; const b = new Blob([c], {type:'text/plain'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = n; document.body.appendChild(a); a.click(); setTimeout(()=> document.body.removeChild(a), 100); }
+    function saveLRC() { 
+        genLRC(); 
+        const c = document.getElementById('lrc-out').value; 
+        if(!c) return alert("No lyrics!"); 
+        let n = (state.videoTitle||"export").replace(/[^a-z0-9 \-_]/gi, '') + ".lrc"; 
+        // FIXED: USE octet-stream TO PREVENT .TXT APPENDING
+        const b = new Blob([c], {type:'application/octet-stream'}); 
+        const a = document.createElement('a'); 
+        a.href = URL.createObjectURL(b); 
+        a.download = n; 
+        document.body.appendChild(a); 
+        a.click(); 
+        setTimeout(()=> document.body.removeChild(a), 100); 
+    }
+    
     function copyLRC() { genLRC(); document.getElementById('lrc-out').select(); document.execCommand('copy'); alert("Copied!"); }
     function applyOffset() { const ms = parseFloat(document.getElementById('offset-ms').value)/1000; state.lyrics.forEach(l => { if(l.time) l.time+=ms; l.words.forEach(w => { if(w.s) w.s+=ms; if(w.e) w.e+=ms; }); }); fullRender(); genLRC(); }
     function updateContext() { const ctx = document.getElementById('word-ctx'); if(state.mode !== 'word' || state.isPreview) { ctx.classList.remove('visible'); return; } ctx.classList.add('visible'); const l = state.lyrics[state.idx]; if(!l) return; const prev = state.wIdx > 0 ? l.words[state.wIdx-1].t : '...'; const curr = l.words[state.wIdx] ? l.words[state.wIdx].t : 'END'; document.getElementById('ctx-prev').innerText = prev; document.getElementById('ctx-curr').innerText = curr; }
@@ -766,9 +766,7 @@
     const dockEl = document.querySelector('.dock');
     let dockOffsetY = 0; let dockStartY = 0; let isDraggingDock = false; let longPressTimer = null;
     dockEl.addEventListener('touchstart', (e) => {
-        // IGNORE TOUCHES ON BUTTONS/INPUTS
         if(e.target.closest('button') || e.target.closest('input') || e.target.closest('.mode-select')) return;
-        
         dockStartY = e.touches[0].clientY;
         longPressTimer = setTimeout(() => { isDraggingDock = true; dockEl.classList.add('is-dragging'); if(navigator.vibrate) navigator.vibrate(50); }, 500); 
     });
