@@ -241,7 +241,7 @@
             <textarea id="raw-input" placeholder="Paste lyrics here..."></textarea>
             <div style="display:flex; gap:5px;">
                 <button class="btn" style="flex:1" onclick="initEditor(state.mode)">Update</button>
-                <button class="btn" onclick="searchLyrics()">🔍 Search</button>
+                <button class="btn" id="btn-fetch" onclick="fetchLyrics()">⚡ Auto Fetch</button>
             </div>
         </div>
 
@@ -313,6 +313,65 @@
 </div>
 
 <script>
+    // Function to fetch lyrics or fallback to Google
+    async function fetchLyrics() {
+        // 1. GET VALUES
+        // Replace 'song-name-input' and 'artist-name-input' with the actual IDs from your HTML
+        const trackName = document.getElementById('song-name-input').value.trim();
+        const artistName = document.getElementById('artist-name-input').value.trim();
+        
+        // Replace 'lyrics-textarea' with the ID of your main text box
+        const lyricsOutput = document.getElementById('lyrics-textarea');
+
+        if (!trackName) {
+            alert("Please enter a song name first.");
+            return;
+        }
+
+        // Show a little "Loading..." status if you want
+        const originalPlaceholder = lyricsOutput.placeholder;
+        lyricsOutput.placeholder = "Searching for lyrics...";
+
+        try {
+            // 2. FETCH FROM LRCLIB
+            // We use the 'get' endpoint for a direct match.
+            const response = await fetch(`https://lrclib.net/api/get?track_name=${encodeURIComponent(trackName)}&artist_name=${encodeURIComponent(artistName)}`);
+
+            if (!response.ok) {
+                throw new Error('Lyrics not found in database');
+            }
+
+            const data = await response.json();
+
+            // 3. CHECK RESULT
+            // Priority: Synced lyrics -> Plain lyrics -> Fail
+            if (data.syncedLyrics) {
+                lyricsOutput.value = data.syncedLyrics;
+            } else if (data.plainLyrics) {
+                lyricsOutput.value = data.plainLyrics;
+            } else {
+                throw new Error('No content in response');
+            }
+
+        } catch (error) {
+            // 4. FALLBACK TO GOOGLE
+            console.log("Auto-fetch failed, redirecting to Google:", error);
+            
+            // Construct the Google search query
+            const query = `${trackName} ${artistName} lyrics`;
+            const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            
+            // Open in a new tab
+            window.open(googleUrl, '_blank');
+            
+            lyricsOutput.placeholder = "Auto-fetch failed. Check the new tab for lyrics.";
+        } finally {
+            // Restore placeholder if needed
+            setTimeout(() => {
+                lyricsOutput.placeholder = originalPlaceholder;
+            }, 3000);
+        }
+    }
     const TIME_THRESHOLD = 0.37;
     let player, timer;
     let state = {
